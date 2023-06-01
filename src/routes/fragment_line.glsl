@@ -8,10 +8,11 @@ uniform float u_time;
 uniform vec2 u_dimensions;
 
 in vec2 v_texcoord;
+in vec4 v_col;
 
 out vec4 fragColor;
 
 void main(void)
 {
-    fragColor = vec4(0.77f, 0.28f, 0.28f, 1.0f);
+    fragColor = v_col;
 }

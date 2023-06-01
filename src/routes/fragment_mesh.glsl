@@ -10,6 +10,7 @@ uniform vec2 u_dimensions;
 in vec2 v_texcoord;
 
 out vec4 fragColor;
+in vec4 v_col;
 
 void main(void)
 {
