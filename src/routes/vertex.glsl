@@ -65,8 +65,8 @@ void main() {
 
     // Adjust coordinates so that viewport is square
     float maxDimension = max(u_dimensions.x, u_dimensions.y);
-    // position.x = position.x * maxDimension / u_dimensions.x;
-    // position.y = position.y * maxDimension / u_dimensions.y;
+    position.x = position.x * maxDimension / u_dimensions.x;
+    position.y = position.y * maxDimension / u_dimensions.y;
 
     gl_Position = vec4(position, 1.);
     v_texcoord = (a_pos.xy + 1.) / 2.;

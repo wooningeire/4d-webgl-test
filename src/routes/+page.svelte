@@ -172,21 +172,22 @@ onMount(() => {
     const modelViewMatrix4RestLineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix4.rest");
     const modelViewMatrix3LineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix3");
 
+    //#endregion
 
 
     const camera4Transform = new Transform4(
-        new Vector4(0, 0, 0, -1.5),
+        new Vector4(-0.5, -0.5, 0, -2),
         // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
     );
 
     const camera3Transform = new Transform4(
-        new Vector4(0, 1, -1.5, 0),
-        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 1, 0, 0)), 0),
+        new Vector4(0.5, 1, -2, 0),
+        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
     );
 
     
     const modelTransform = new Transform4(
-        new Vector4(1, 0, 0, 0),
+        new Vector4(0, 0, 0, 0),
         new Rotor4(1, 0, 0, 0, 0, 0, 0, 0),
         new Vector4(0.5, 0.5, 0.5, 0.5),
     );
@@ -194,8 +195,6 @@ onMount(() => {
     console.log(camera3Transform.matrixInverse(), camera3Transform.matrix().inv());
 
     // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/4);
-
-    //#endregion
 
 
     resizeCanvasAndViewport = () => {
@@ -212,11 +211,11 @@ onMount(() => {
         gl.viewport(0, 0, canvas.width, canvas.height);
     };
     const render = (now: number) => {
-        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 2000)
-                // .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 2000));
-        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), now / 1000);
-
-        modelTransform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 1.5 * Math.sin(now / 1000), 0);
+        modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 3000)
+                .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 3000));
+        
+        // modelTransform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 1.5 * Math.sin(now / 1000), 0);
+        // camera4Transform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 0, -2);
 
         // Camera inverse transform occurs before model transform, but matrix multiplications are from right-to-left
         const modelViewMatrix4 = modelTransform.matrix().dotMat(camera4Transform.matrixInverse());
