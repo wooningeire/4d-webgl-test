@@ -14,5 +14,6 @@ in vec4 v_col;
 
 void main(void)
 {
-    fragColor = vec4(0.42f, 0.16f, 0.63f, 1.0f);
+    fragColor = vec4(0.79f, 0.67f, 0.89f, 1.0f);
+    // fragColor = vec4(0.42f, 0.16f, 0.63f, 1.0f);
 }

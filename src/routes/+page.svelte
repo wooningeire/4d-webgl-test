@@ -11,10 +11,17 @@ import fragmentShaderLineSource from "./fragment_line.glsl?raw";
 
 let canvas: HTMLCanvasElement;
 
+let resizeCanvasAndViewport = () => {};
+
+
 onMount(() => {
     const gl = canvas.getContext("webgl2")!;
 
     const gle = new Gl(gl);
+
+
+    gl.enable(gl.DEPTH_TEST);
+    // gl.enable(gl.CULL_FACE);
 
 
     //#region Shader setup
@@ -32,13 +39,21 @@ onMount(() => {
     //#region Setting attributes
 
     const vertCoordsMesh = new Float32Array([
-        -.5, -.5, -1, -1,
-        -1, 1, 1, 1,
-        1, -1, 1, 1,
+        // -1, -1, -1, 0,
+        // -1, 1, 1, 0,
+        // 1, -1, 1, 0,
 
-        -1, 1, 1, 1,
-        1, -1, 1, 1,
-        1, 1, 1, 1,
+        // -1, 1, 1, 0,
+        // 1, -1, 1, 0,
+        // 1, 1, 1, 0,
+
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+
+        -1, 0, 0, 0,
+        0, -1, 0, 0,
+        0, 0, -1, 0,
     ]);
 
     const COORD_DIMENSION_MESH = 4;
@@ -145,68 +160,96 @@ onMount(() => {
     //#region Setting uniforms
 
     // These uniforms are set later
-    const dimensionsUnif = gl.getUniformLocation(glProgramMesh, "u_dimensions");
+    const dimensionsMeshUnif = gl.getUniformLocation(glProgramMesh, "u_dimensions");
+    const dimensionsLineUnif = gl.getUniformLocation(glProgramLine, "u_dimensions");
     const timeUnif = gl.getUniformLocation(glProgramMesh, "u_time");
 
-    const modelViewMatrixMeshMainUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix.main");
-    const modelViewMatrixMeshRestUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix.rest");
+    const modelViewMatrix4MainMeshUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix4.main");
+    const modelViewMatrix4RestMeshUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix4.rest");
+    const modelViewMatrix3MeshUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix3");
 
-    const modelViewMatrixLineMainUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix.main");
-    const modelViewMatrixLineRestUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix.rest");
+    const modelViewMatrix4MainLineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix4.main");
+    const modelViewMatrix4RestLineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix4.rest");
+    const modelViewMatrix3LineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix3");
 
 
 
-    const cameraTransform = new Transform4();
-    cameraTransform.translate = new Vector4(0.5, 0.5, -1.5, 0);
+    const camera4Transform = new Transform4(
+        new Vector4(0, 0, 0, -1.5),
+        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
+    );
+
+    const camera3Transform = new Transform4(
+        new Vector4(0, 1, -1.5, 0),
+        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 1, 0, 0)), 0),
+    );
+
     
     const modelTransform = new Transform4(
-        new Vector4(0, 0, 0, 0),
-        Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/8),
-        new Vector4(0.5, 0.5, 0.5, 1),
+        new Vector4(1, 0, 0, 0),
+        new Rotor4(1, 0, 0, 0, 0, 0, 0, 0),
+        new Vector4(0.5, 0.5, 0.5, 0.5),
     );
-    const modelMatrix = modelTransform.matrix();
-    console.log(modelMatrix);
 
-    // Camera inverse transform occurs before model transform, but matrix multiplications are from right-to-left
-    const computeModelViewMatrix = () => modelTransform.matrix().dotMat(cameraTransform.matrixInverse());
+    console.log(camera3Transform.matrixInverse(), camera3Transform.matrix().inv());
+
+    // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/4);
 
     //#endregion
 
 
-    const resizeCanvasAndViewport = () => {
+    resizeCanvasAndViewport = () => {
         // Scale up here (by `devicePixelRatio`) and scale down in CSS to appear sharp on high-DPI displays
         // Canvas is downsized to 100vw and 100vh in CSS
         canvas.width = document.documentElement.clientWidth * devicePixelRatio;
         canvas.height = document.documentElement.clientHeight * devicePixelRatio;
 
-        gl.uniform2fv(dimensionsUnif, [canvas.width, canvas.height]);
+        gl.useProgram(glProgramMesh);
+        gl.uniform2fv(dimensionsMeshUnif, [canvas.width, canvas.height]);
+        gl.useProgram(glProgramLine);
+        gl.uniform2fv(dimensionsLineUnif, [canvas.width, canvas.height]);
+        
         gl.viewport(0, 0, canvas.width, canvas.height);
-
-        // render();
     };
     const render = (now: number) => {
-        modelTransform.rotate = Rotor4.planeAngle(new Vector4(0, 1, 0, 0).outer(new Vector4(0, 0, 1, 0)), Math.PI * now / 2000);
-        const modelViewMatrix = computeModelViewMatrix();
+        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 2000)
+                // .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 2000));
+        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), now / 1000);
+
+        modelTransform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 1.5 * Math.sin(now / 1000), 0);
+
+        // Camera inverse transform occurs before model transform, but matrix multiplications are from right-to-left
+        const modelViewMatrix4 = modelTransform.matrix().dotMat(camera4Transform.matrixInverse());
 
         const mainMat = [
-            ...modelViewMatrix.slice(0, 4),
-            ...modelViewMatrix.slice(5, 9),
-            ...modelViewMatrix.slice(10, 14),
-            ...modelViewMatrix.slice(15, 19),
+            ...modelViewMatrix4.slice(0, 4),
+            ...modelViewMatrix4.slice(5, 9),
+            ...modelViewMatrix4.slice(10, 14),
+            ...modelViewMatrix4.slice(15, 19),
         ];
         const restMat = [
-            modelViewMatrix[4],
-            modelViewMatrix[9],
-            modelViewMatrix[14],
-            ...modelViewMatrix.slice(19, 25),
+            modelViewMatrix4[4],
+            modelViewMatrix4[9],
+            modelViewMatrix4[14],
+            ...modelViewMatrix4.slice(19, 25),
+        ];
+
+        const viewMatrix3_4 = camera3Transform.matrixInverse();
+        const viewMatrix3 = [
+            ...viewMatrix3_4.slice(0, 3), viewMatrix3_4[4],
+            ...viewMatrix3_4.slice(5, 8), viewMatrix3_4[9],
+            ...viewMatrix3_4.slice(10, 13), viewMatrix3_4[14],
+            ...viewMatrix3_4.slice(20, 23), viewMatrix3_4[24],
         ];
 
 
         gl.useProgram(glProgramMesh);
         gl.bindVertexArray(vertArrayMesh);
 
-        gl.uniformMatrix4fv(modelViewMatrixMeshMainUnif, false, mainMat);
-        gl.uniformMatrix3fv(modelViewMatrixMeshRestUnif, false, restMat);
+        gl.uniformMatrix4fv(modelViewMatrix4MainMeshUnif, false, mainMat);
+        gl.uniformMatrix3fv(modelViewMatrix4RestMeshUnif, false, restMat);
+
+        gl.uniformMatrix4fv(modelViewMatrix3MeshUnif, false, viewMatrix3);
         
         gl.drawArrays(gl.TRIANGLES, 0, nVertsMesh);
 
@@ -214,13 +257,14 @@ onMount(() => {
         gl.useProgram(glProgramLine);
         gl.bindVertexArray(vertArrayLine);
 
-        gl.uniformMatrix4fv(modelViewMatrixLineMainUnif, false, mainMat);
-        gl.uniformMatrix3fv(modelViewMatrixLineRestUnif, false, restMat);
+        gl.uniformMatrix4fv(modelViewMatrix4MainLineUnif, false, mainMat);
+        gl.uniformMatrix3fv(modelViewMatrix4RestLineUnif, false, restMat);
+
+        gl.uniformMatrix4fv(modelViewMatrix3LineUnif, false, viewMatrix3);
 
         gl.drawArrays(gl.LINES, 0, nVertsLine);
     };
 
-    addEventListener("resize", resizeCanvasAndViewport);
     resizeCanvasAndViewport();
 
 
@@ -236,6 +280,8 @@ onMount(() => {
 </script>
 
 <canvas bind:this={canvas}></canvas>
+
+<svelte:window on:resize={resizeCanvasAndViewport} />
 
 <style lang="scss">
 canvas {
