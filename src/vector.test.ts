@@ -37,10 +37,17 @@ describe.concurrent(Rotor4.name, () => {
         });
     });
 
-    it("performs simple rotation correctly", async () => {
-        const vec = new Vector4(1, 0, 0, 0);
-        const b = Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI / 4);
-    });
+    // it("performs simple rotation correctly", async () => {
+    //     const vec = new Vector4(2, 3, 5, 7);
+    //     const rot = Rotor4.planeAngle(new Vector4(1/2, 1/2, 1/2, 1/2).outer(new Vector4(0, 0, 0, 1)), Math.PI / 3);
+
+    //     const prod = rot.rotateVector(vec);
+    //     const prodExp = new Vector4();
+
+    //     prod.forEach((_, i) => {
+    //         expect(prod[i]).toBeCloseTo(prodExp[i]);
+    //     });
+    // });
 
     it("performs double rotation correctly", async () => {
         // Multiplication with a zw rotor should not affect how the x basis vector is rotated.

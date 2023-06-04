@@ -26,3 +26,31 @@ export class Gl {
         return glProgram;
     }
 }
+
+/* 
+export class GlLine {
+    readonly vertBuffer: WebGLBuffer;
+    readonly vertArray: WebGLVertexArrayObject;
+
+    constructor(readonly vertCoords: Float32Array) {
+        const COORD_DIMENSION_LINE = 4;
+        const nVertsLine = vertCoords.length / COORD_DIMENSION_LINE;
+
+        this.vertBuffer = gl.createBuffer()!;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertCoords, gl.STATIC_DRAW);
+
+        this.vertArray = gl.createVertexArray()!;
+        gl.bindVertexArray(this.vertArray);
+
+        const posAttrLine = gl.getAttribLocation(glProgramLine, "a_pos");
+        gl.vertexAttribPointer(posAttrLine, COORD_DIMENSION_LINE, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(posAttrLine);
+    }
+}
+
+const xAxis = new GlLine(new Float32Array([
+    -1, 0, 0, 0,
+    1, 0, 0, 0,
+]));
+*/

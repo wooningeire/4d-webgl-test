@@ -377,6 +377,14 @@ export class Vector4 extends Polymultivector {
 		super([x, y, z, w]);
 	}
 
+	static zero(): Vector4 {
+		return new Vector4();
+	}
+
+	static ones(): Vector4 {
+		return new Vector4(1, 1, 1, 1);
+	}
+
 	/**
 	 * 
 	 * @param {Vector4} vector 

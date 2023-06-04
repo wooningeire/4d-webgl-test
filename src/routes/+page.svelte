@@ -4,6 +4,7 @@ import {onMount} from "svelte";
 import {Gl} from "./Gl";
 import {Transform4} from "$/4d/Transform4";
 import {Bivector4, Rotor4, Vector4} from "$/4d/vector";
+import {construct} from "$/4d/construct";
 
 import vertexShaderSource from "./vertex.glsl?raw";
 import fragmentShaderMeshSource from "./fragment_mesh.glsl?raw";
@@ -15,13 +16,19 @@ let resizeCanvasAndViewport = () => {};
 
 
 onMount(() => {
-    const gl = canvas.getContext("webgl2")!;
+    const gl = canvas.getContext("webgl2", {
+        alpha: true,
+        premultipliedAlpha: false,
+    })!;
 
     const gle = new Gl(gl);
 
-
-    gl.enable(gl.DEPTH_TEST);
-    // gl.enable(gl.CULL_FACE);
+    // gl.enable(gl.DEPTH_TEST); // Automatic depth
+    // gl.enable(gl.CULL_FACE); // Backface culling
+    
+    // Alpha blending
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
 
 
     //#region Shader setup
@@ -36,25 +43,14 @@ onMount(() => {
     //#endregion
 
 
+    const cubeMesh = construct.octachoron();
+
     //#region Setting attributes
 
-    const vertCoordsMesh = new Float32Array([
-        // -1, -1, -1, 0,
-        // -1, 1, 1, 0,
-        // 1, -1, 1, 0,
+    const vertArrayMesh = gl.createVertexArray();
+    gl.bindVertexArray(vertArrayMesh);
 
-        // -1, 1, 1, 0,
-        // 1, -1, 1, 0,
-        // 1, 1, 1, 0,
-
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-
-        -1, 0, 0, 0,
-        0, -1, 0, 0,
-        0, 0, -1, 0,
-    ]);
+    const vertCoordsMesh = new Float32Array(cubeMesh.triangleCoords());
 
     const COORD_DIMENSION_MESH = 4;
     const nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
@@ -63,41 +59,36 @@ onMount(() => {
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
     gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.STATIC_DRAW);
 
-    const vertArrayMesh = gl.createVertexArray();
-    gl.bindVertexArray(vertArrayMesh);
-
     const posAttrMesh = gl.getAttribLocation(glProgramMesh, "a_pos");
     gl.vertexAttribPointer(posAttrMesh, COORD_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(posAttrMesh);
 
 
-    /* 
-    class GlLine {
-        readonly vertBuffer: WebGLBuffer;
-        readonly vertArray: WebGLVertexArrayObject;
+    const colsMesh = new Float32Array(
+        Array(nVertsMesh / 2).fill(0)
+                .map(_ => {
+                    const col = [
+                        Math.random() * 0.4 + 0.6,
+                        Math.random() * 0.4 + 0.6,
+                        Math.random() * 0.4 + 0.6,
+                        1,
+                    ];
+                    return Array(6).fill(0)
+                            .map(_ => col)
+                            .flat();
+                })
+                .flat()
+    );
 
-        constructor(readonly vertCoords: Float32Array) {
-            const COORD_DIMENSION_LINE = 4;
-            const nVertsLine = vertCoords.length / COORD_DIMENSION_LINE;
+    const COL_DIMENSION_MESH = 4;
 
-            this.vertBuffer = gl.createBuffer()!;
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.vertBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vertCoords, gl.STATIC_DRAW);
+    const colBufferMesh = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
+    gl.bufferData(gl.ARRAY_BUFFER, colsMesh, gl.STATIC_DRAW);
 
-            this.vertArray = gl.createVertexArray()!;
-            gl.bindVertexArray(this.vertArray);
-
-            const posAttrLine = gl.getAttribLocation(glProgramLine, "a_pos");
-            gl.vertexAttribPointer(posAttrLine, COORD_DIMENSION_LINE, gl.FLOAT, false, 0, 0);
-            gl.enableVertexAttribArray(posAttrLine);
-        }
-    }
-
-    const xAxis = new GlLine(new Float32Array([
-        -1, 0, 0, 0,
-        1, 0, 0, 0,
-    ]));
-    */
+    const colAttrMesh = gl.getAttribLocation(glProgramMesh, "a_col");
+    gl.vertexAttribPointer(colAttrMesh, COL_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(colAttrMesh);
 
 
     const vertArrayLine = gl.createVertexArray();
@@ -154,6 +145,22 @@ onMount(() => {
     gl.vertexAttribPointer(colAttrLine, COL_DIMENSION_LINE, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(colAttrLine);
 
+
+    const vertArrayWireframe = gl.createVertexArray();
+    gl.bindVertexArray(vertArrayWireframe);
+
+    const vertCoordsWireframe = new Float32Array(cubeMesh.linesCoords());
+
+    const COORD_DIMENSION_WIREFRAME = 4;
+    const nVertsWireframe = vertCoordsWireframe.length / COORD_DIMENSION_WIREFRAME;
+
+    const vertBufferWireframe = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferWireframe);
+    gl.bufferData(gl.ARRAY_BUFFER, vertCoordsWireframe, gl.STATIC_DRAW);
+
+    gl.vertexAttribPointer(posAttrLine, COORD_DIMENSION_WIREFRAME, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(posAttrLine);
+
     //#endregion
 
 
@@ -176,12 +183,12 @@ onMount(() => {
 
 
     const camera4Transform = new Transform4(
-        new Vector4(-0.5, -0.5, 0, -2),
+        new Vector4(-0.5, -0.5, 0, -1.5),
         // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
     );
 
     const camera3Transform = new Transform4(
-        new Vector4(0.5, 1, -2, 0),
+        new Vector4(0.25, 0.5, -1, 0),
         // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
     );
 
@@ -191,8 +198,6 @@ onMount(() => {
         new Rotor4(1, 0, 0, 0, 0, 0, 0, 0),
         new Vector4(0.5, 0.5, 0.5, 0.5),
     );
-
-    console.log(camera3Transform.matrixInverse(), camera3Transform.matrix().inv());
 
     // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/4);
 
@@ -243,25 +248,28 @@ onMount(() => {
 
 
         gl.useProgram(glProgramMesh);
-        gl.bindVertexArray(vertArrayMesh);
 
         gl.uniformMatrix4fv(modelViewMatrix4MainMeshUnif, false, mainMat);
         gl.uniformMatrix3fv(modelViewMatrix4RestMeshUnif, false, restMat);
 
         gl.uniformMatrix4fv(modelViewMatrix3MeshUnif, false, viewMatrix3);
         
+        gl.bindVertexArray(vertArrayMesh);
         gl.drawArrays(gl.TRIANGLES, 0, nVertsMesh);
 
 
         gl.useProgram(glProgramLine);
-        gl.bindVertexArray(vertArrayLine);
 
         gl.uniformMatrix4fv(modelViewMatrix4MainLineUnif, false, mainMat);
         gl.uniformMatrix3fv(modelViewMatrix4RestLineUnif, false, restMat);
 
         gl.uniformMatrix4fv(modelViewMatrix3LineUnif, false, viewMatrix3);
 
+        gl.bindVertexArray(vertArrayLine);
         gl.drawArrays(gl.LINES, 0, nVertsLine);
+        
+        gl.bindVertexArray(vertArrayWireframe);
+        gl.drawArrays(gl.LINES, 0, nVertsWireframe);
     };
 
     resizeCanvasAndViewport();
