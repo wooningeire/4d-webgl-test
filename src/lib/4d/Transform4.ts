@@ -95,9 +95,9 @@ export class Matrix5 extends Array<number> {
 
 export class Transform4 {
     constructor(
-        public translate: Vector4=new Vector4(),
-        public rotate: Rotor4=new Rotor4(),
-        public scale: Vector4=new Vector4(1, 1, 1, 1),
+        public translate: Vector4=Vector4.zero(),
+        public rotate: Rotor4=Rotor4.identity(),
+        public scale: Vector4=Vector4.ones(),
     ) {}
 
     private rotateAndScale(vector: Vector4): Vector4 {

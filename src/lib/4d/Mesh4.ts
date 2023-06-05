@@ -3,13 +3,14 @@
  */
 
 import type {Vector4, Bivector4} from "./vector";
+import {numberArrayKey} from "../util";
 
-type Vert = Vector4;
-type Edge = [Vert, Vert];
-type EdgeLoop = [Vert, Edge];
-type Face = EdgeLoop[];
-type FaceLoop = [Edge, Face];
-type Cell = Face[];
+export type Vert = Vector4;
+export type Edge = [Vert, Vert];
+export type EdgeLoop = [Vert, Edge];
+export type Face = EdgeLoop[];
+export type FaceLoop = [Edge, Face];
+export type Cell = Face[];
 
 /**
  * Stores a set of 4D points and how they are connected. Used to define a 4D polygon mesh.
@@ -28,13 +29,20 @@ export class Mesh4 {
 		readonly edgeLoops: EdgeLoop[]=[],
 	) {}
 
+	/**
+	 * 
+	 * @param verts List of vertices.
+	 * @param facesByVertIndexes List of number tuples, where each number is an index of a vertex in `verts`.
+	 * @param cellsByFaceIndexes List of number tuples, where each number is an index of a face in `facesByVertIndexes`.
+	 * @returns A mesh that satisfies the specified parameters.
+	 */
 	static fromVertsFacesCells(
 		verts: Vert[],
 		facesByVertIndexes: number[][],
 		cellsByFaceIndexes: number[][]=[],
 	): Mesh4 {
-		const edgeSet: Map<BigInt, Edge> = new Map();
-		const edgeLoopSet: Map<BigInt, EdgeLoop[]> = new Map();
+		const edgeSet = new Map<ReturnType<typeof numberArrayKey>, Edge>();
+		const edgeLoopSet = new Map<ReturnType<typeof numberArrayKey>, EdgeLoop[]>();
 
 		const faces: Face[] = [];
 
@@ -152,25 +160,4 @@ const bivectorFromTri = (geometry: Mesh4, vertIndexes: number[]): Bivector4 => {
 	const dir1 = geometry.verts[vertIndexes[2]].subtract(geometry.verts[vertIndexes[0]]);
 
 	return dir0.outer(dir1);
-}
-
-/**
- * Sorts an array of vertex indices and represents it as a BigInt. The return value is used to distinguish it in a
- * set or map, similar to a hash code.
- * @param {number[]} vertIndexes 
- * @returns {bigint}
- */
-const numberArrayKey = (vertIndexes: number[]): bigint => {
-	const bitsPerComponent = 32n; // arbitrary; can practically be at most 53n (max safe integer for doubles)
-
-	// Sort the array so that facets with the same vertices, but not in the same direction, are no longer distinguished
-	const vertIndexesClone = vertIndexes.slice().sort((a, b) => a - b);
-
-	let primitive = BigInt(vertIndexesClone[0]);
-	for (let i = 1; i < vertIndexesClone.length; i++) {
-		primitive <<= bitsPerComponent;
-		primitive += (BigInt(vertIndexesClone[i]) + 1n) % bitsPerComponent; // Add 1 so different-length lists are not considered equal
-	}
-	
-	return primitive;
 }

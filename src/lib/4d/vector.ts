@@ -204,6 +204,10 @@ export class Rotor4 extends Polymultivector {
 				: rotor.normalize();
 	}
 
+	static identity(): Rotor4 {
+		return new Rotor4();
+	}
+
 	inverse(): Rotor4 {
 		return new Rotor4(this[0], -this[1], -this[2], -this[3], -this[4], -this[5], -this[6], this[7]);
 	}

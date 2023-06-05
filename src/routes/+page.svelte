@@ -43,7 +43,7 @@ onMount(() => {
     //#endregion
 
 
-    const cubeMesh = construct.octachoron();
+    const cubeMesh = construct.regularIcositetrachoron();
 
     //#region Setting attributes
 
