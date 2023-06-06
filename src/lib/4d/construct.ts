@@ -2,7 +2,10 @@ import {Vector4} from "./vector";
 import {Mesh4, type Face} from "./Mesh4";
 import {numberArrayKey} from "../util";
 
-const {sqrt, SQRT1_2} = Math;
+const {sqrt, SQRT1_2, sign, abs, hypot} = Math;
+const PHI = (1 + sqrt(5)) / 2;
+const PHI_I = PHI - 1; // === 1 / phi
+const EPSILON = 1e-12;
 
 export const construct = {
     regularHexahedron(): Mesh4 {
@@ -27,7 +30,7 @@ export const construct = {
     },
 
 	// https://en.wikipedia.org/wiki/5-cell#Construction
-	regularPentachoron() {
+	regularPentachoron(): Mesh4 {
 		const s = SQRT1_2;
 		const f = sqrt(1 / 5);
 
@@ -78,8 +81,7 @@ export const construct = {
 		return builder.mesh();
     },
     
-
-	regularHexadecachoron() {
+	regularHexadecachoron(): Mesh4 {
 		// General form of orthoplex
 		// Vertices are permutations of (±1, 0, 0, 0) (2 for each axis)
 		// All vertices are connected, apart from opposite vertices which lie on the same axis
@@ -112,7 +114,7 @@ export const construct = {
 		return builder.mesh();
 	},
 
-	regularIcositetrachoron() {
+	regularIcositetrachoron(): Mesh4 {
 		const verts: Vector4[] = [
             // [0, 8)
             // permutations of (±1, 0, 0, 0)
@@ -206,6 +208,121 @@ export const construct = {
         }
 		return builder.mesh();
 	},
+	
+	// https://en.wikipedia.org/wiki/600-cell
+	// http://eusebeia.dyndns.org/4d/600-cell
+	regularHexacosichoron(): Mesh4 {
+        //#region Generating vertices
+
+        const evenPermutations4 = [
+            [0, 1, 2, 3],
+            [0, 2, 3, 1],
+            [0, 3, 1, 2],
+            [1, 0, 3, 2],
+            [1, 2, 0, 3],
+            [1, 3, 2, 0],
+            [2, 0, 1, 3],
+            [2, 1, 3, 0],
+            [2, 3, 0, 1],
+            [3, 0, 2, 1],
+            [3, 1, 0, 2],
+            [3, 2, 1, 0],
+        ];
+        const generateEvenPerm4Verts = function* (values: NLengthTuple<number, 4>): Generator<Vector4, void, void> {
+            for (const perm of evenPermutations4) {
+                yield new Vector4(...perm.map(index => values[index]));
+            }
+        };
+
+        const generateSignCombinations = function* (values: number[]): Generator<number[], void, void> {
+            for (let i = 0; i < 0b1 << values.length; i++) {
+                yield values.map((value, j) => 0b1 & i >> j ? -value : value);
+            }
+        };
+
+        // https://mathworld.wolfram.com/600-Cell.html
+    	const verts = [
+            // [0, 8)
+            // permutations of (±1, 0, 0, 0)
+            ...generateHexadecachoronVerts(),
+
+            // [8, 24)
+            // (±.5, ±.5, ±.5, ±.5)
+            ...generateOctachoronVerts(),
+
+            // [24, 120)
+            // even permutations of (±φ, ±1, ±φ⁻¹, 0)
+            ...[...generateSignCombinations([PHI/2, 1/2, PHI_I/2])]
+                    .map(values => [...generateEvenPerm4Verts([...values, 0] as NLengthTuple<number, 4>)])
+                    .flat(),
+        ];
+
+        //#endregion
+
+        // We will add cells to the mest simply by finding groups of 4 vertices which have the same distance between them
+
+        const edges = new Map<Vector4, Set<Vector4>>(); // Keeps track of the vertices adjacent to any given vertex
+        const EDGE_LENGTH = PHI_I;
+
+        // The 600-cell has tetrahedral cells, which means the vertices of any given cell all have the same distance.
+        // Therefore, the other three vertices thus must all be in the set of adjacent vertices for a single vertex.
+        // This also implies that, later when we iterate through each vertex, the set of tetrahedra we find for a single vertex
+        //      is the set of all cells which contain that vertex.
+        // This means that we do not have to store repeat edges in the `Map` (and this will make construction easier later, since we will
+        //      not need to filter out duplicate cells).
+        for (let i = 0; i < verts.length; i++) {
+            const vert0 = verts[i];
+
+            // Find the 12 vertices that have the target edge length from the vertex, excluding repeat edges in the `Map`
+            const edgesForVert = new Set<Vector4>();
+            for (let j = i + 1; j < verts.length; j++) {
+                const vert1 = verts[j];
+                if (abs(hypot(...vert0.subtract(vert1)) - EDGE_LENGTH) < EPSILON) {
+                    edgesForVert.add(vert1);
+                }
+            }
+
+            edges.set(vert0, edgesForVert);
+        }
+        
+        // // The following would store repeat edges:
+        // for (const vert0 of verts) {
+        //     edges.set(
+        //         vert0,
+        //         // The 12 vertices that have the target edge length from the vertex
+        //         new Set(
+        //             verts.filter(vert1 => abs(hypot(...vert1.subtract(vert0)) - EDGE_LENGTH) < EPSILON)
+        //         ),
+        //     );
+        // }
+
+        const builder = new MeshCellBuilder();
+        for (const [vert0, adjacents] of edges) {
+            const adjacentsList = [...adjacents];
+            for (let index1 = 0; index1 < adjacentsList.length - 2; index1++) {
+                const vert1 = adjacentsList[index1];
+
+                for (let index2 = index1 + 1; index2 < adjacentsList.length - 1; index2++) {
+                    const vert2 = adjacentsList[index2];
+                    // vert1 has to come first due to the way we constructed the map with no repeats
+                    if (!edges.get(vert1)!.has(vert2)) continue;
+
+                    for (let index3 = index2 + 1; index3 < adjacentsList.length; index3++) {
+                        const vert3 = adjacentsList[index3];
+                        if (!edges.get(vert1)!.has(vert3)) continue;
+                        if (!edges.get(vert2)!.has(vert3)) continue;
+                        
+                        builder.addTetrahedronCell([vert0, vert1, vert2, vert3]);
+                    }
+                }
+            }
+        }
+
+        // console.log(builder.cells.length);
+
+        // return Mesh4.fromVertsFacesCells(verts, []);
+        return builder.mesh();
+	},
 };
 
 const generateOctachoronVerts = (): Vector4[] => {
@@ -249,6 +366,9 @@ type NLengthTupleBuilder<T, TargetLength extends number, AccumulatorTuple extend
                 // Otherwise, extend the accumulator by one entry and check again
                 : NLengthTupleBuilder<T, TargetLength, [...AccumulatorTuple, T]>;
 
+/**
+ * Constructs a mesh cell-by-cell.
+ */
 class MeshCellBuilder {
     /**
      * Since JavaScript does not provide unique object identifiers, a temporary map is used to identify them
@@ -265,7 +385,7 @@ class MeshCellBuilder {
     /**
      * Collection of tuples of face indexes
      */
-    private readonly cells: number[][] = [];
+    /* private */ readonly cells: number[][] = [];
 
     private recordVerts(verts: Vector4[]) {
         for (const vert of verts) {
@@ -305,7 +425,7 @@ class MeshCellBuilder {
         }
 
         this.cells.push(cell);
-
+        
         return faces;
     }
 

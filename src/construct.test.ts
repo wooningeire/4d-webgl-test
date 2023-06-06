@@ -44,3 +44,14 @@ describe.concurrent(construct.regularIcositetrachoron.name, () => {
         expect(mesh.cells.length).toBe(24);
     });
 });
+
+describe.concurrent(construct.regularHexacosichoron.name, () => {
+    it("produces the correct number of facets", () => {
+        const mesh = construct.regularHexacosichoron();
+
+        expect(mesh.verts.length).toBe(120);
+        expect(mesh.edges.length).toBe(720);
+        expect(mesh.faces.length).toBe(1200);
+        expect(mesh.cells.length).toBe(600);
+    });
+});
