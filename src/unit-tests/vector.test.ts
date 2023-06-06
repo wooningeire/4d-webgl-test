@@ -53,18 +53,27 @@ describe.concurrent(Rotor4.name, () => {
 
     it("performs double rotation correctly", async () => {
         // Multiplication with a zw rotor should not affect how the x basis vector is rotated.
-        const vec = new Vector4(1, 0, 0, 0);
+        const vec0 = new Vector4(1, 0, 0, 0);
+        const vec1 = new Vector4(0, 0, 0, 1);
     
         const a = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), PI / 4);
-        const b = Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), PI / 4);
+        const b = Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), PI / 3);
         const prod = a.mult(b);
 
 
-        const vecOut = vec.multRotor(prod);
-        const vecExp = vec.multRotor(a);
+        const vecOut0 = vec0.multRotor(prod);
+        const vecExp0 = vec0.multRotor(a);
         
-        vecOut.forEach((_, i) => {
-            expect(vecOut[i]).toBeCloseTo(vecExp[i]);
+        vecOut0.forEach((_, i) => {
+            expect(vecOut0[i]).toBeCloseTo(vecExp0[i]);
+        });
+
+
+        const vecOut1 = vec1.multRotor(prod);
+        const vecExp1 = vec1.multRotor(b);
+        
+        vecOut1.forEach((_, i) => {
+            expect(vecOut1[i]).toBeCloseTo(vecExp1[i]);
         });
     });
 });

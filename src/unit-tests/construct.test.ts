@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {construct} from "./lib/4d/construct";
+import {construct} from "../lib/4d/construct";
 
 describe.concurrent(construct.regularPentachoron.name, () => {
     it("produces the correct number of facets", () => {
