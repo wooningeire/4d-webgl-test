@@ -42,15 +42,14 @@ onMount(() => {
 
     //#endregion
 
-
-    const cubeMesh = construct.regularHexacosichoron();
+    const mesh = construct.regularHecatonicosachoron();
 
     //#region Setting attributes
 
     const vertArrayMesh = gl.createVertexArray();
     gl.bindVertexArray(vertArrayMesh);
 
-    const vertCoordsMesh = new Float32Array(cubeMesh.triangleCoords());
+    const vertCoordsMesh = new Float32Array(mesh.triangleCoords());
 
     const COORD_DIMENSION_MESH = 4;
     const nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
@@ -65,7 +64,7 @@ onMount(() => {
 
 
     const colsMesh = new Float32Array(
-        Array(nVertsMesh / 2).fill(0)
+        Array(nVertsMesh / 9).fill(0)
                 .map(_ => {
                     const col = [
                         Math.random() * 0.4 + 0.6,
@@ -73,7 +72,7 @@ onMount(() => {
                         Math.random() * 0.4 + 0.6,
                         1,
                     ];
-                    return Array(6).fill(0)
+                    return Array(9).fill(0)
                             .map(_ => col)
                             .flat();
                 })
@@ -149,7 +148,7 @@ onMount(() => {
     const vertArrayWireframe = gl.createVertexArray();
     gl.bindVertexArray(vertArrayWireframe);
 
-    const vertCoordsWireframe = new Float32Array(cubeMesh.linesCoords());
+    const vertCoordsWireframe = new Float32Array(mesh.linesCoords());
 
     const COORD_DIMENSION_WIREFRAME = 4;
     const nVertsWireframe = vertCoordsWireframe.length / COORD_DIMENSION_WIREFRAME;

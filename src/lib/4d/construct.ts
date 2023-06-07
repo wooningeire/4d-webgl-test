@@ -208,6 +208,13 @@ export const construct = {
         }
 		return builder.mesh();
 	},
+
+    regularHecatonicosachoron(): Mesh4 {
+        // 120-cell is the dual of the 600-cell
+        const mesh = this.regularHexacosichoron().dual();
+        const radius = mesh.verts[0].mag;
+        return mesh.scale(1 / radius);
+    },
 	
 	// https://en.wikipedia.org/wiki/600-cell
 	// http://eusebeia.dyndns.org/4d/600-cell
@@ -265,11 +272,13 @@ export const construct = {
         const EDGE_LENGTH = PHI_I;
 
         // The 600-cell has tetrahedral cells, which means the vertices of any given cell all have the same distance.
-        // Therefore, the other three vertices thus must all be in the set of adjacent vertices for a single vertex.
-        // This also implies that, later when we iterate through each vertex, the set of tetrahedra we find for a single vertex
-        //      is the set of all cells which contain that vertex.
-        // This means that we do not have to store repeat edges in the `Map` (and this will make construction easier later, since we will
-        //      not need to filter out duplicate cells).
+        // Therefore, if we were to track all 12 adjacent vertices for each vertex, the other three vertices thus would
+        //      all be in the set of adjacent vertices for a single vertex.
+        // That would also imply that, later when we iterate through each vertex, the set of tetrahedra we find for a
+        //      single vertex is the set of all cells which contain that vertex (excluding any cells found from a
+        //      previous vertex).
+        // This means that we do not have to store repeat edges in the `Map` (and this will make construction easier
+        //      later, since we will not need to filter out duplicate cells).
         for (let i = 0; i < verts.length; i++) {
             const vert0 = verts[i];
 
@@ -318,9 +327,6 @@ export const construct = {
             }
         }
 
-        // console.log(builder.cells.length);
-
-        // return Mesh4.fromVertsFacesCells(verts, []);
         return builder.mesh();
 	},
 };
@@ -385,7 +391,7 @@ class MeshCellBuilder {
     /**
      * Collection of tuples of face indexes
      */
-    /* private */ readonly cells: number[][] = [];
+    private readonly cells: number[][] = [];
 
     private recordVerts(verts: Vector4[]) {
         for (const vert of verts) {

@@ -357,6 +357,30 @@ export class Bivector4 extends Polymultivector {
 		}
 		return cumsum;
 	}
+
+	get xy() {
+		return this[0];
+	}
+
+	get xz() {
+		return this[1];
+	}
+
+	get xw() {
+		return this[2];
+	}
+
+	get yz() {
+		return this[3];
+	}
+
+	get yw() {
+		return this[4];
+	}
+
+	get zw() {
+		return this[5];
+	}
 }
 
 /**
@@ -387,6 +411,12 @@ export class Vector4 extends Polymultivector {
 
 	static ones(): Vector4 {
 		return new Vector4(1, 1, 1, 1);
+	}
+
+	static basis(axisIndex: number): Vector4 {
+		const out = new Vector4();
+		out[axisIndex] = 1;
+		return out;
 	}
 
 	/**
@@ -487,6 +517,22 @@ export class Vector4 extends Polymultivector {
 			this[2] * vector[2],
 			this[3] * vector[3],
 		);
+	}
+
+	// https://math.stackexchange.com/questions/3174534/how-to-take-dot-product-of-a-vector-and-a-bivector
+	dotBivec(bivector: Bivector4): Vector4 {
+		// Components of the vector can be found by evaluating the right side of the bac-cab identity and then
+		// pattern-matching with the left side
+		return new Vector4(
+			-this.y * bivector.xy - this.z * bivector.xz - this.w * bivector.xw,
+			this.x * bivector.xy - this.z * bivector.yz - this.w * bivector.yw,
+			this.x * bivector.xz + this.y * bivector.yz - this.w * bivector.zw,
+			this.x * bivector.xw + this.y * bivector.yw + this.z * bivector.zw,
+		);
+	}
+
+	dist(vector: Vector4): number {
+		return Math.hypot(...vector.subtract(this));
 	}
 
 	clone(): Vector4 {
