@@ -151,4 +151,8 @@ export class Transform4 {
         //     0, 0, 0, 0, 1,
         // );
     }
+
+    transformVec(vector: Vector4): Vector4 {
+        return this.rotateAndScale(vector).add(this.translate);
+    }
 }

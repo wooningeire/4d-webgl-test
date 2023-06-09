@@ -32,3 +32,7 @@ describe.concurrent(Mesh4.fromVertsFacesCells.name, () => {
         expect(skewedSquarePyramidMesh.edges.length).toBe(8);
     });
 });
+
+// describe.concurrent(Mesh4.prototype.intersection.name, () => {
+//     it("")
+// });

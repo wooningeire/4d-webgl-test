@@ -23,12 +23,12 @@ onMount(() => {
 
     const gle = new Gl(gl);
 
-    // gl.enable(gl.DEPTH_TEST); // Automatic depth
+    gl.enable(gl.DEPTH_TEST); // Automatic depth
     // gl.enable(gl.CULL_FACE); // Backface culling
     
     // Alpha blending
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    gl.enable(gl.BLEND);
+    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    // gl.enable(gl.BLEND);
 
 
     //#region Shader setup
@@ -42,7 +42,34 @@ onMount(() => {
 
     //#endregion
 
-    const mesh = construct.regularHecatonicosachoron();
+    const mesh = construct.regularHexacosichoron()
+            .transform(new Transform4(
+                new Vector4(0, 0, 0, 0),
+                Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 0, 0, 0)), Math.PI * 0.02)
+            ))
+            .intersection();
+
+    // const mesh = (() => {
+    //     const cube = construct.regularHexahedron();
+    //     cube.cells.push(cube.faces);
+    //     const intersect = cube
+    //             // .transform(new Transform4(
+    //             //     new Vector4(0, 0, 0, 0),
+    //             //     Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI / 2)
+    //             //             .mult(Rotor4.between(new Vector4(1, 1, 0, 1), new Vector4(0, 0, -1, 0)))
+    //             // ))
+    //             .intersection();
+
+    //     return intersect
+    //             // .joinEdges(construct.regularHexahedron()
+    //             // .transform(new Transform4(
+    //             //     new Vector4(0, 0, 0, 0),
+    //             //     Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI / 2)
+    //             //             .mult(Rotor4.between(new Vector4(1, 1, 0, 1), new Vector4(0, 0, -1, 0)))
+    //             // )))
+    // })();
+
+    console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
 
     //#region Setting attributes
 
@@ -63,21 +90,7 @@ onMount(() => {
     gl.enableVertexAttribArray(posAttrMesh);
 
 
-    const colsMesh = new Float32Array(
-        Array(nVertsMesh / 9).fill(0)
-                .map(_ => {
-                    const col = [
-                        Math.random() * 0.4 + 0.6,
-                        Math.random() * 0.4 + 0.6,
-                        Math.random() * 0.4 + 0.6,
-                        1,
-                    ];
-                    return Array(9).fill(0)
-                            .map(_ => col)
-                            .flat();
-                })
-                .flat()
-    );
+    const colsMesh = new Float32Array(mesh.triangleColors());
 
     const COL_DIMENSION_MESH = 4;
 
@@ -215,8 +228,9 @@ onMount(() => {
         gl.viewport(0, 0, canvas.width, canvas.height);
     };
     const render = (now: number) => {
-        modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 3000)
-                .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 3000));
+        modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 0, 1, 0)), Math.PI * now / 3000)
+        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 3000)
+        //         .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 3000));
         
         // modelTransform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 1.5 * Math.sin(now / 1000), 0);
         // camera4Transform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 0, -2);

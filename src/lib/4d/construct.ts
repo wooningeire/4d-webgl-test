@@ -1,6 +1,6 @@
 import {Vector4} from "./vector";
 import {Mesh4, type Face} from "./Mesh4";
-import {numberArrayKey} from "../util";
+import {numberSetKey} from "../util";
 
 const {sqrt, SQRT1_2, sign, abs, hypot} = Math;
 const PHI = (1 + sqrt(5)) / 2;
@@ -386,7 +386,7 @@ class MeshCellBuilder {
     /**
      * Collection of tuples of a tuple of vert indexes and the face id determined by insertion order
      */
-    private readonly facesAndFaceIds = new Map<ReturnType<typeof numberArrayKey>, [number[], number]>();
+    private readonly facesAndFaceIds = new Map<ReturnType<typeof numberSetKey>, [number[], number]>();
 
     /**
      * Collection of tuples of face indexes
@@ -420,7 +420,7 @@ class MeshCellBuilder {
 
         // get ids of each of the faces from this context
         for (const face of faces) {
-            const key = numberArrayKey(face);
+            const key = numberSetKey(face);
 
             if (this.facesAndFaceIds.has(key)) {
                 cell.push(this.facesAndFaceIds.get(key)![1]);

@@ -4,7 +4,7 @@
  * @param {number[]} vertIndices 
  * @returns {bigint}
  */
-export const numberArrayKey = (vertIndices: number[]): bigint => {
+export const numberSetKey = (vertIndices: number[]): bigint => {
 	const bitsPerComponent = 32n; // arbitrary; can practically be at most 53n (max safe integer for doubles)
 
 	// Sort the array so that facets with the same vertices, but not in the same direction, are no longer distinguished

@@ -2,12 +2,14 @@
  * @file Handles storage and operation of 4D mesh geometry.
  */
 
-import {Vector4, Bivector4} from "./vector";
-import {numberArrayKey} from "../util";
+import {Vector4, Bivector4, Space3_4} from "./vector";
+import type {Transform4} from "./Transform4";
+import {numberSetKey} from "../util";
 
 export type Vert = Vector4;
 export type Edge = [Vert, Vert];
 export type EdgeLoop = [Vert, Edge];
+/** **Ordered** list of edge loops. */
 export type Face = EdgeLoop[];
 export type FaceLoop = [Edge, Face];
 export type Cell = Face[];
@@ -19,6 +21,7 @@ export class Mesh4 {
 	private constructor(
 		readonly verts: Vert[]=[],
 		readonly edges: Edge[]=[],
+		/** **Ordered** list of edge loops. */
 		readonly faces: Face[]=[],
 		readonly cells: Cell[]=[],
 
@@ -42,8 +45,8 @@ export class Mesh4 {
 		facesByVertIndices: number[][],
 		cellsByFaceIndices: number[][]=[],
 	): Mesh4 {
-		const edgeSet = new Map<ReturnType<typeof numberArrayKey>, Edge>();
-		const edgeLoopSet = new Map<ReturnType<typeof numberArrayKey>, EdgeLoop[]>();
+		const edgeSet = new Map<ReturnType<typeof numberSetKey>, Edge>();
+		const edgeLoopSet = new Map<ReturnType<typeof numberSetKey>, EdgeLoop[]>();
 
 		const faces: Face[] = [];
 
@@ -57,7 +60,7 @@ export class Mesh4 {
 				const vert0 = verts[vertIndex0];
 				const vert1 = verts[vertIndex1];
 
-				const key = numberArrayKey([vertIndex0, vertIndex1]);
+				const key = numberSetKey([vertIndex0, vertIndex1]);
 
 				// Select the edge loop that has `vert0` as its vertex
 				let edgeLoop: EdgeLoop;
@@ -125,6 +128,7 @@ export class Mesh4 {
 
 	triangleCoords(): number[] {
 		const coords: number[] = [];
+		// Assuming convex faces
 		for (const edgeLoops of this.faces) {
 			for (let i = 1; i < edgeLoops.length - 1; i++) {
 				// Select vertices to create a triangle fan
@@ -136,6 +140,29 @@ export class Mesh4 {
 			}
 		}
 		return coords;
+	}
+
+	/** temporary implementation */
+	triangleColors(): number[] {
+		const channels: number[] = [];
+		// Assuming convex faces
+		for (const edgeLoops of this.faces) {
+			const color = [
+				Math.random() * 0.4 + 0.6,
+				Math.random() * 0.4 + 0.6,
+				Math.random() * 0.4 + 0.6,
+				0.5,
+			];
+
+			for (let i = 1; i < edgeLoops.length - 1; i++) {
+				channels.push(
+					...color,
+					...color,
+					...color,
+				);
+			}
+		}
+		return channels;
 	}
 
 	linesCoords(): number[] {
@@ -210,10 +237,7 @@ export class Mesh4 {
 		);
 		const newEdgeLoops = new Map<Edge, EdgeLoop[]>();
 		for (const edge of newEdges) {
-			newEdgeLoops.set(edge, [
-				[edge[0], edge],
-				[edge[1], edge],
-			]);
+			newEdgeLoops.set(edge, loops(edge));
 		}
 
 		const newFaces: Face[] = [...boundingFacesOfEdges.values()].map(
@@ -241,6 +265,147 @@ export class Mesh4 {
 			}
 		}
 		return this;
+	}
+
+	transform(transform: Transform4) {
+		for (const vert of this.verts) {
+			vert.copy(transform.transformVec(vert));
+		}
+		return this;
+	}
+
+	join(mesh: Mesh4) {
+		return new Mesh4(
+			[...this.verts, ...mesh.verts],
+			[...this.edges, ...mesh.edges],
+			[...this.faces, ...mesh.faces],
+			[...this.cells, ...mesh.cells],
+		);
+	}
+
+	joinEdges(mesh: Mesh4) {
+		return new Mesh4(
+			[...this.verts, ...mesh.verts],
+			[...this.edges, ...mesh.edges],
+			[...this.faces],
+			[...this.cells],
+		);
+	}
+	
+	intersection(/* space: Space3_4 */): Mesh4 {
+		const edgeIntersections = new Map<Edge, Vert | null>(); // To avoid recalculating intersections with the same edge
+		const faceIntersections = new Map<Face, Edge | null>();
+
+		// temp intersect with xyz 3-space
+		const verts: Vert[] = [];
+		const edges: Edge[] = [];
+		const faces: Face[] = [];
+		const edgeLoops = new Map<Edge, EdgeLoop[]>();
+		// TODO handle perfect alignment between space and face
+
+		for (const cell of this.cells) {
+			const cellIntersection: Face[] = [];
+
+			let newFace: Edge[] = [];
+
+			for (const face of cell) {
+				const faceIntersection: Edge[] = [];
+
+				let newEdge: Vert[] = []; // For now not bothering with new edges that have 0 length
+				
+				// Can probably handle concave faces? But will probably not handle concave cells correctly
+				for (const [edge0, edge] of face) {
+					// Has the intersection already been calculated for this edge?
+					// This also ensures that different edges can reference the same vertices
+					if (edgeIntersections.has(edge)) {
+						const pointIntersection = edgeIntersections.get(edge)!;
+
+						if (pointIntersection === null) continue;
+
+						if (newEdge.some(vert => vert.eq(pointIntersection))) continue;
+						newEdge.push(pointIntersection);
+
+						if (newEdge.length === 2) {
+							faceIntersection.push(newEdge as Edge);
+							newEdge = [];
+						}
+						continue;
+					}
+
+					const edge1 = edge[0] === edge0
+							? edge[1]
+							: edge[0];
+
+					const direction = edge1.subtract(edge0);
+					const percent = -edge0[3] / direction[3];
+					// 3-space does not intersect with this edge
+					// `percent` can technically be in [0, 1], but we arbitrarily disallow one of them to avoid repeat vertices
+					if (0 > percent || percent > 1) {
+						edgeIntersections.set(edge, null);
+						continue;
+					}
+
+					// 3-space fully contains this edge
+					if (isNaN(percent)) {
+						verts.push(edge0, edge1);
+
+						const edgeClone: Edge = [edge0, edge1];
+						edges.push(edgeClone);
+						edgeLoops.set(edgeClone, loops(edgeClone));
+						faceIntersection.push(edgeClone);
+
+						newEdge = [edge1]; // temp
+						continue;
+					}
+
+					const pointIntersection = 
+							percent === 0 ? edge0 :
+							percent === 1 ? edge1 :
+							edge0.add(direction.multScalar(percent));
+					edgeIntersections.set(edge, pointIntersection);
+
+					// Vertex can be repeated if one vertex of the face lies in the 3-space
+					if (newEdge.some(vert => vert.eq(pointIntersection))) continue;
+					verts.push(pointIntersection);
+					newEdge.push(pointIntersection);
+
+					if (newEdge.length === 2) {
+						faceIntersection.push(newEdge as Edge);
+						newEdge = [];
+					}
+				}
+
+
+				// if (newEdge.length < 2) continue;
+
+				// if (cellIntersection.some(edge =>
+				// 		edge.every((_, i) => edge[i].eq(newEdge[i]))
+				// 		|| edge.every((_, i) => edge[i].eq(newEdge[1 - i]))
+				// 	)
+				// ) continue;
+
+				const faceFullyContained = faceIntersection.length === face.length;
+
+				for (const edge of faceIntersection) {
+					edges.push(edge);
+					edgeLoops.set(edge, loops(edge));
+	
+					newFace.push(edge);
+				}
+			}
+
+			if (newFace.length < 3) continue;
+			console.log(newFace);
+			faces.push(reorderEdges(newFace, edgeLoops));
+		}
+
+		return new Mesh4(
+			verts,
+			edges,
+			faces,
+			[],
+			[],
+		);
 	}
 }
 
@@ -306,6 +471,15 @@ const triangulate = function* (face: Face): Generator<Vector4[], void, void> {
 };
 
 /**
+ * Constructs the two edge loops that correspond with an edge.
+ * @param edge 
+ */
+const loops = (edge: Edge): [EdgeLoop, EdgeLoop] => [
+	[edge[0], edge],
+	[edge[1], edge],
+];
+
+/**
  * Reorders a list of edges into a list of edge loops that properly represent a face.
  * @param edges Edges of the face, in any order.
  * @param edgeLoops Map from each edge to the two edge loops it corresponds to.
@@ -327,10 +501,15 @@ const reorderEdges = (edges: Edge[], edgeLoops: Map<Edge, EdgeLoop[]>): Face => 
 	for (let i = 1; i < edges.length; i++) {
 		const nextEdge = [...uncheckedEdges].find(edge => edge.includes(nextVertex))!;
 
-		loops[i] = edgeLoops.get(nextEdge)!
-				.find(edgeLoop => edgeLoop[0] === nextVertex)!;
+		const candidateLoops = edgeLoops.get(nextEdge)!;
+		loops[i] = candidateLoops[0][0] === nextVertex
+				? candidateLoops[0]
+				: candidateLoops[1];
+
 		uncheckedEdges.delete(nextEdge);
-		nextVertex = nextEdge.find(vertex => vertex !== nextVertex)!;
+		nextVertex = nextEdge[0] === nextVertex
+				? nextEdge[1]
+				: nextEdge[0];
 	}
 
 	return loops;
