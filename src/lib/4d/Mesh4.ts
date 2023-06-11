@@ -103,29 +103,6 @@ export class Mesh4 {
 		);
 	}
 
-	// for testing
-	/* static fromVertsFaces(
-		verts: Vert[],
-		facesByVertIndexes: number[][],
-	) {
-		return {
-			triangleCoords() {
-				const coords: number[] = [];
-				for (const vertIndexes of facesByVertIndexes) {
-					for (let i = 1; i < vertIndexes.length - 1; i++) {
-						// Select vertices to create a triangle fan
-						coords.push(
-							...verts[vertIndexes[0]],
-							...verts[vertIndexes[i]],
-							...verts[vertIndexes[i + 1]],
-						);
-					}
-				}
-				return coords;
-			},
-		};
-	} */
-
 	triangleCoords(): number[] {
 		const coords: number[] = [];
 		// Assuming convex faces
@@ -293,53 +270,134 @@ export class Mesh4 {
 	}
 	
 	intersection(/* space: Space3_4 */): Mesh4 {
-		const edgeIntersections = new Map<Edge, Vert | null>(); // To avoid recalculating intersections with the same edge
-		const faceIntersections = new Map<Face, Edge | null>();
+		const edgeIntersections = new Map<Edge, Edge | Vert | null>(); // To avoid recalculating intersections with the same edge
+		const faceIntersections = new Map<Face, Face | Edge[] | null>();
+		const cellIntersections = new Map<Cell, Cell | Face[] | null>();
 
 		// temp intersect with xyz 3-space
-		const verts: Vert[] = [];
-		const edges: Edge[] = [];
-		const faces: Face[] = [];
-		const edgeLoops = new Map<Edge, EdgeLoop[]>();
-		// TODO handle perfect alignment between space and face
+		const vertIndices = new Map<Vert, number>();
+		const addVert = (...verts: Vert[]) => {
+			for (const vert of verts) {
+				if (vertIndices.has(vert)) continue;
+				vertIndices.set(vert, vertIndices.size);
+			}
+		};
 
+		const edges = new Map<ReturnType<typeof numberSetKey>, Edge>();
+		const addEdge = (edge: Edge): boolean => {
+			const key = numberSetKey(edge.map(vert => vertIndices.get(vert)!));
+
+			if (edges.has(key)) return false;
+			edges.set(key, edge);
+
+			return true;
+		};
+
+		const faces = new Map<ReturnType<typeof numberSetKey>, Face>();
+		const addFace = (face: Face): boolean => {
+			const key = numberSetKey(face.map(([vert, _]) => vertIndices.get(vert)!));
+
+			if (faces.has(key)) return false;
+			faces.set(key, face);
+
+			return true;
+		};
+
+		const edgeLoops = new Map<Edge, EdgeLoop[]>();
+
+		
 		for (const cell of this.cells) {
 			const cellIntersection: Face[] = [];
 
 			let newFace: Edge[] = [];
+			const newFaceVerts = new Set<Vert>();
+			const newFaceEdges = new Set<ReturnType<typeof numberSetKey>>();
 
+			// console.log();
+
+			// Does not handle concave cells
 			for (const face of cell) {
+				if (faceIntersections.has(face)) {
+					const intersection = faceIntersections.get(face)!;
+
+					if (intersection === null) continue;
+
+					else if (isEdge(intersection[0])) {
+						for (const edge of intersection as Edge[]) {
+							const key = numberSetKey(edge.map(vert => vertIndices.get(vert)!));
+							if (newFaceEdges.has(key)) continue;
+
+							newFace.push(edge);
+							newFaceEdges.add(key);
+							
+							for (const vert of edge) {
+								if (newFaceVerts.has(vert)) {
+									newFaceVerts.delete(vert);
+								} else {
+									newFaceVerts.add(vert);
+								}
+							}
+						}
+						// if (newFace.length >= 3 && newFaceVerts.size !== 0) console.log(newFace.map(edge => edge.map(vert => vertIndices.get(vert))));
+						if (newFaceVerts.size !== 0) continue;
+
+						const thisNewFace = reorderEdges(newFace, edgeLoops);
+						if (addFace(thisNewFace)) {
+							cellIntersection.push(thisNewFace);
+						}
+						newFace = [];
+						newFaceEdges.clear();
+					}
+
+					else {
+						cellIntersection.push(intersection as Face);
+					}
+					continue;
+				}
+
 				const faceIntersection: Edge[] = [];
 
 				let newEdge: Vert[] = []; // For now not bothering with new edges that have 0 length
-				
-				// Can probably handle concave faces? But will probably not handle concave cells correctly
+				// Does not handle concave faces
 				for (const [edge0, edge] of face) {
-					// Has the intersection already been calculated for this edge?
-					// This also ensures that different edges can reference the same vertices
-					if (edgeIntersections.has(edge)) {
-						const pointIntersection = edgeIntersections.get(edge)!;
-
-						if (pointIntersection === null) continue;
-
-						if (newEdge.some(vert => vert.eq(pointIntersection))) continue;
-						newEdge.push(pointIntersection);
-
-						if (newEdge.length === 2) {
-							faceIntersection.push(newEdge as Edge);
-							newEdge = [];
-						}
-						continue;
-					}
-
 					const edge1 = edge[0] === edge0
 							? edge[1]
 							: edge[0];
 
+					// Has the intersection already been calculated for this edge?
+					// This also ensures that different edges can reference the same vertices
+					if (edgeIntersections.has(edge)) {
+						const intersection = edgeIntersections.get(edge)!;
+
+						if (intersection === null) continue;
+
+						else if (intersection instanceof Vector4) {
+							if (newEdge[0] === intersection) continue;
+							newEdge.push(intersection);
+	
+							if (newEdge.length !== 2) continue;
+							if (addEdge(newEdge as Edge)) {
+								edgeLoops.set(newEdge as Edge, loops(newEdge as Edge));
+
+								faceIntersection.push(newEdge as Edge);
+							}
+							newEdge = [];
+						}
+
+						else {
+							if (!faceIntersection.some(edge => edge === intersection)) {
+								faceIntersection.push(intersection);
+							}
+							newEdge = [edge1]; // temp
+						}
+						continue;
+					}
+
+
 					const direction = edge1.subtract(edge0);
 					const percent = -edge0[3] / direction[3];
+
 					// 3-space does not intersect with this edge
-					// `percent` can technically be in [0, 1], but we arbitrarily disallow one of them to avoid repeat vertices
 					if (0 > percent || percent > 1) {
 						edgeIntersections.set(edge, null);
 						continue;
@@ -347,17 +405,20 @@ export class Mesh4 {
 
 					// 3-space fully contains this edge
 					if (isNaN(percent)) {
-						verts.push(edge0, edge1);
-
 						const edgeClone: Edge = [edge0, edge1];
-						edges.push(edgeClone);
-						edgeLoops.set(edgeClone, loops(edgeClone));
-						faceIntersection.push(edgeClone);
 
+						addVert(edge0, edge1);
+						addEdge(edgeClone); // need condition?
+						edgeLoops.set(edgeClone, loops(edgeClone));
+
+						edgeIntersections.set(edge, edgeClone);
+
+						faceIntersection.push(edgeClone);
 						newEdge = [edge1]; // temp
 						continue;
 					}
-
+					
+					// 3-space intersects this edge at a single point
 					const pointIntersection = 
 							percent === 0 ? edge0 :
 							percent === 1 ? edge1 :
@@ -365,46 +426,129 @@ export class Mesh4 {
 					edgeIntersections.set(edge, pointIntersection);
 
 					// Vertex can be repeated if one vertex of the face lies in the 3-space
-					if (newEdge.some(vert => vert.eq(pointIntersection))) continue;
-					verts.push(pointIntersection);
+					if (newEdge[0] === pointIntersection) continue;
+					addVert(pointIntersection);
+
 					newEdge.push(pointIntersection);
 
-					if (newEdge.length === 2) {
-						faceIntersection.push(newEdge as Edge);
-						newEdge = [];
+					if (newEdge.length !== 2) continue;
+					// Edge can be repeated if one edge lies in the 3-space but the others do not
+					if (addEdge(newEdge as Edge)) {
+						edgeLoops.set(newEdge as Edge, loops(newEdge as Edge));
+
+						if (!faceIntersection.some(edge => edge === newEdge)) {
+							faceIntersection.push(newEdge as Edge);
+						}
+					}
+					newEdge = [];
+				}
+
+				// 3-space does not intersect with this face, or only by vertices and not any edges
+				if (faceIntersection.length === 0) {
+					// may need extra cases
+					faceIntersections.set(face, null);
+					continue;
+				}
+
+				// 3-space fully contains this face
+				if (faceIntersection.length === face.length) {
+					const faceClone = reorderEdges(
+						face.map(([_, edge]) => edgeIntersections.get(edge) as Edge),
+						edgeLoops,
+					);
+
+					addFace(faceClone);
+
+					faceIntersections.set(face, faceClone);
+					
+					cellIntersection.push(faceClone);
+					continue;
+				}
+
+				// 3-space intersects this face by some edges
+				faceIntersections.set(face, faceIntersection);
+				// console.log();
+				// console.log(face.map(([vert, _]) => vertIndices.get(vert)));
+				// console.log(faceIntersection.map(edge => edge.map(vert => vertIndices.get(vert))));
+				for (const edge of faceIntersection) {
+					// Edges can reappear if two faces share an edge which becomes part of the intersection
+					const key = numberSetKey(edge.map(vert => vertIndices.get(vert)!));
+					if (newFaceEdges.has(key)) continue;
+
+					newFace.push(edge);
+					newFaceEdges.add(key);
+					
+					// If each vertex appears twice in the face's edge list, then the face forms a complete loop
+					for (const vert of edge) {
+						if (newFaceVerts.has(vert)) {
+							newFaceVerts.delete(vert);
+						} else {
+							newFaceVerts.add(vert);
+						}
 					}
 				}
+				// console.log([...newFaceVerts].map(vert => vertIndices.get(vert)));
+				// if (newFace.length >= 3 && newFaceVerts.size !== 0) console.log(newFace.map(edge => edge.map(vert => vertIndices.get(vert))));
+				if (newFaceVerts.size !== 0) continue;
 
-
-				// if (newEdge.length < 2) continue;
-
-				// if (cellIntersection.some(edge =>
-				// 		edge.every((_, i) => edge[i].eq(newEdge[i]))
-				// 		|| edge.every((_, i) => edge[i].eq(newEdge[1 - i]))
-				// 	)
-				// ) continue;
-
-				const faceFullyContained = faceIntersection.length === face.length;
-
-				for (const edge of faceIntersection) {
-					edges.push(edge);
-					edgeLoops.set(edge, loops(edge));
-	
-					newFace.push(edge);
+				const intersection = reorderEdges(newFace, edgeLoops);
+				if (addFace(intersection)) {
+					cellIntersection.push(intersection);
 				}
+				newFace = [];
+				newFaceEdges.clear();
 			}
 
-			if (newFace.length < 3) continue;
-			console.log(newFace);
-			faces.push(reorderEdges(newFace, edgeLoops));
+			// console.log(cellIntersection);
+
+			// 3-space does not intersect with this cell
+			if (cellIntersection.length === 0) {
+				cellIntersections.set(cell, null);
+				continue;
+			}
+
+			// if (newFace.length < 3) continue;
+			
+
+			// 3-space fully contains this cell
+			if (cellIntersection.length === cell.length) {
+
+			}
+
+			// console.log(newFace);
+			// faces.push(reorderEdges(newFace, edgeLoops));
 		}
 
 		return new Mesh4(
-			verts,
-			edges,
-			faces,
+			[...vertIndices.keys()],
+			[...edges.values()],
+			[...faces.values()],
 			[],
 			[],
+		);
+	}
+
+	singleCellMesh(index: number): Mesh4 {
+		const cell = this.cells[index];
+
+		const edges = new Set<Edge>();
+		const verts = new Set<Vert>();
+		const edgeLoops = new Set<EdgeLoop>();
+		for (const face of cell) {
+			for (const edgeLoop of face) {
+				const [vert, edge] = edgeLoop;
+				edges.add(edge);
+				verts.add(vert);
+				edgeLoops.add(edgeLoop);
+			}
+		}
+
+		return new Mesh4(
+			[...verts],
+			[...edges],
+			cell,
+			[cell],
+			[...edgeLoops],
 		);
 	}
 }
@@ -526,4 +670,10 @@ const bivectorFromTri = (geometry: Mesh4, vertIndices: number[]): Bivector4 => {
 	const dir1 = geometry.verts[vertIndices[2]].subtract(geometry.verts[vertIndices[0]]);
 
 	return dir0.outer(dir1);
-}
+};
+
+const isEdge = (array: Vert | Edge | EdgeLoop | Face): array is Edge =>
+		array[0] instanceof Vector4 && array[1] instanceof Vector4;
+
+const isEdgeLoop = (array: Edge | EdgeLoop | Face): array is EdgeLoop =>
+		array[0] instanceof Vector4 && isEdge(array[1]);

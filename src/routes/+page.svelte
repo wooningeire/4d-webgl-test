@@ -9,6 +9,7 @@ import {construct} from "$/4d/construct";
 import vertexShaderSource from "./vertex.glsl?raw";
 import fragmentShaderMeshSource from "./fragment_mesh.glsl?raw";
 import fragmentShaderLineSource from "./fragment_line.glsl?raw";
+    import { Mesh4 } from "@/lib/4d/Mesh4";
 
 let canvas: HTMLCanvasElement;
 
@@ -43,14 +44,28 @@ onMount(() => {
     //#endregion
 
     const mesh = construct.regularHexacosichoron()
-            .transform(new Transform4(
-                new Vector4(0, 0, 0, 0),
-                Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 0, 0, 0)), Math.PI * 0.02)
-            ))
+            // .transform(new Transform4(
+            //     new Vector4(0, 0, 0, 0),
+            //     Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 0, 0, 0)), Math.PI * 0)
+            // ))
             .intersection();
 
     // const mesh = (() => {
-    //     const cube = construct.regularHexahedron();
+    //     const cube = Mesh4.fromVertsFacesCells(
+    //         [
+    //             new Vector4(0, 0, 1, 0),
+    //             new Vector4(-1, -1, 0, 0),
+    //             new Vector4(-2, 2, -1, 0),
+    //             new Vector4(0, 0, 0, 1),
+    //         ], [
+    //             [0, 1, 2],
+    //             [0, 1, 3],
+    //             [0, 2, 3],
+    //             [1, 2, 3],
+    //         ], [
+    //             [0, 1, 2, 3],
+    //         ],
+    //     );
     //     cube.cells.push(cube.faces);
     //     const intersect = cube
     //             // .transform(new Transform4(
