@@ -43,46 +43,12 @@ onMount(() => {
 
     //#endregion
 
-    const mesh = construct.regularHexacosichoron()
-            // .transform(new Transform4(
-            //     new Vector4(0, 0, 0, 0),
-            //     Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 0, 0, 0)), Math.PI * 0)
-            // ))
-            .intersection();
-
-    // const mesh = (() => {
-    //     const cube = Mesh4.fromVertsFacesCells(
-    //         [
-    //             new Vector4(0, 0, 1, 0),
-    //             new Vector4(-1, -1, 0, 0),
-    //             new Vector4(-2, 2, -1, 0),
-    //             new Vector4(0, 0, 0, 1),
-    //         ], [
-    //             [0, 1, 2],
-    //             [0, 1, 3],
-    //             [0, 2, 3],
-    //             [1, 2, 3],
-    //         ], [
-    //             [0, 1, 2, 3],
-    //         ],
-    //     );
-    //     cube.cells.push(cube.faces);
-    //     const intersect = cube
-    //             // .transform(new Transform4(
-    //             //     new Vector4(0, 0, 0, 0),
-    //             //     Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI / 2)
-    //             //             .mult(Rotor4.between(new Vector4(1, 1, 0, 1), new Vector4(0, 0, -1, 0)))
-    //             // ))
-    //             .intersection();
-
-    //     return intersect
-    //             // .joinEdges(construct.regularHexahedron()
-    //             // .transform(new Transform4(
-    //             //     new Vector4(0, 0, 0, 0),
-    //             //     Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI / 2)
-    //             //             .mult(Rotor4.between(new Vector4(1, 1, 0, 1), new Vector4(0, 0, -1, 0)))
-    //             // )))
-    // })();
+    const mesh = construct.regularHecatonicosachoron()
+            .transform(new Transform4(
+                new Vector4(0, 0, 0, 0.2),
+                Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 1, 0, 0)), Math.PI * 0)
+            ))
+            .crossSect();
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
 

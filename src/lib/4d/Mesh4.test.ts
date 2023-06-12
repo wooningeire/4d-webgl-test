@@ -34,11 +34,11 @@ describe.concurrent(Mesh4.fromVertsFacesCells.name, () => {
     });
 });
 
-describe.concurrent(Mesh4.prototype.intersection.name, () => {
+describe.concurrent(Mesh4.prototype.crossSect.name, () => {
     test("mesh fully contained in 3-space", () => {
         const cube = construct.regularHexahedron();
         cube.cells.push(cube.faces);
-        const intersection = cube.intersection();
+        const intersection = cube.crossSect();
 
         expect(intersection.verts.length).toBe(cube.verts.length);
         expect(intersection.edges.length).toBe(cube.edges.length);
@@ -57,7 +57,7 @@ describe.concurrent(Mesh4.prototype.intersection.name, () => {
                 [0],
             ],
         )
-        const intersection = triangle.intersection();
+        const intersection = triangle.crossSect();
 
         expect(intersection.verts.length).toBe(2);
         expect(intersection.edges.length).toBe(1);
@@ -76,7 +76,7 @@ describe.concurrent(Mesh4.prototype.intersection.name, () => {
                 [0],
             ],
         )
-        const intersection = triangle.intersection();
+        const intersection = triangle.crossSect();
 
         expect(intersection.verts.length).toBe(2);
         expect(intersection.edges.length).toBe(1);
@@ -99,7 +99,7 @@ describe.concurrent(Mesh4.prototype.intersection.name, () => {
                 [0, 1, 2, 3],
             ],
         );
-        const intersection = pyramid.intersection();
+        const intersection = pyramid.crossSect();
         
         expect(intersection.verts.length).toBe(3);
         expect(intersection.edges.length).toBe(3);
@@ -122,14 +122,14 @@ describe.concurrent(Mesh4.prototype.intersection.name, () => {
                 [0, 1, 2, 3],
             ],
         );
-        const intersection = pyramid.intersection();
+        const intersection = pyramid.crossSect();
         
         expect(intersection.verts.length).toBe(1);
         expect(intersection.edges.length).toBe(0);
         expect(intersection.faces.length).toBe(0);
     });
 
-    test("unclosed 2-cell with 1 face in 3-space and 2 verteices outside", () => {
+    test("unclosed 2-cell with 1 face in 3-space and 2 vertices outside", () => {
         const pyramid = Mesh4.fromVertsFacesCells(
             [
                 new Vector4(0, 0, 1, 0),
@@ -152,7 +152,7 @@ describe.concurrent(Mesh4.prototype.intersection.name, () => {
                 [0, 1, 2, 4],
             ],
         );
-        const intersection = pyramid.intersection();
+        const intersection = pyramid.crossSect();
         // console.log(intersection.edges);
         
         expect(intersection.verts.length).toBe(3);
