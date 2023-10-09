@@ -12,5 +12,13 @@ body {
     width: 100vw;
     height: 100vh;
 
-    background: #b0bacc;
+    font-family: Inter, sans-serif;
+
+    background: #eef8eb;
+    color: #1a2c20;
+}
+
+input,
+button {
+    font-family: inherit;
 }

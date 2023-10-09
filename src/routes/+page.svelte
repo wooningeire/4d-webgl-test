@@ -9,11 +9,17 @@ import {construct} from "$/4d/construct";
 import vertexShaderSource from "./vertex.glsl?raw";
 import fragmentShaderMeshSource from "./fragment_mesh.glsl?raw";
 import fragmentShaderLineSource from "./fragment_line.glsl?raw";
-    import { Mesh4 } from "@/lib/4d/Mesh4";
+import { Mesh4 } from "@/lib/4d/Mesh4";
+import Overlays from "./Overlays.svelte";
 
 let canvas: HTMLCanvasElement;
 
 let resizeCanvasAndViewport = () => {};
+
+const camera4Transform = new Transform4(
+    new Vector4(-0.5, -0.5, 0, -1.5),
+    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
+);
 
 
 onMount(() => {
@@ -175,11 +181,6 @@ onMount(() => {
     //#endregion
 
 
-    const camera4Transform = new Transform4(
-        new Vector4(-0.5, -0.5, 0, -1.5),
-        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
-    );
-
     const camera3Transform = new Transform4(
         new Vector4(0.25, 0.5, -1, 0),
         // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
@@ -280,13 +281,25 @@ onMount(() => {
 
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<main>
+    <canvas bind:this={canvas}></canvas>
+    <Overlays {camera4Transform} />
+</main>
 
 <svelte:window on:resize={resizeCanvasAndViewport} />
 
 <style lang="scss">
-canvas {
+main {
+    display: grid;
     width: 100vw;
     height: 100vh;
+
+
+    > :global(*) {
+        grid-area: 1/1;
+
+        width: 100%;
+        height: 100%;
+    }
 }
 </style>
