@@ -12,13 +12,19 @@ body {
     width: 100vw;
     height: 100vh;
 
-    font-family: Inter, sans-serif;
+    font-family: var(--font-body);
 
     background: #eef8eb;
     color: #1a2c20;
+
+    --font-body: Inter, sans-serif;
+
+    --col-red: #f8809e;
 }
 
 input,
-button {
+button,
+select {
     font-family: inherit;
+    font-size: 1em;
 }

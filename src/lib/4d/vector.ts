@@ -60,6 +60,10 @@ export class Polymultivector extends Array<number> {
 		return this;
 	}
 
+	scaled(scalar: number) {
+		return this.map(value => value * scalar) as typeof this;
+	}
+
 	normalize() {
 		this.scale(1 / this.mag);
 

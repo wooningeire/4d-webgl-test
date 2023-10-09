@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { createEventDispatcher } from "svelte";
+import { createEventDispatcher } from "svelte";
 
 const acceptAlways = () => true;
 const identity = (value: number) => value;
@@ -13,8 +13,10 @@ export let convertOut: (value: number) => number = identity;
 export let hasBounds = true;
 
 export let step = 1e-3;
+export let nDecimals = 4;
 
 const dispatch = createEventDispatcher<{
+    input: number,
     change: number,
 }>();
 
@@ -22,24 +24,29 @@ const dispatch = createEventDispatcher<{
 let proposedValueIsValid = true;
 let entryActive = false;
 
+$: value, !entryActive && setDisplayToTrueValue();
+
+
 let element: HTMLInputElement | null = null;
 
-let displayValue = convertOut(value).toString();
+let displayValueUnprocessed = convertOut(value);
+$: displayValue = Number(displayValueUnprocessed.toFixed(nDecimals)).toString();
 
 
 const setDisplayToTrueValue = () => {
-    displayValue = convertOut(value).toString();
+    displayValueUnprocessed = convertOut(value);
 };
 
 
 const onInput = () => {
     entryActive = true;
 
-    const proposedValue = convertIn(Number(displayValue));
+    const proposedValue = convertIn(Number(element!.value));
     proposedValueIsValid = validate(proposedValue);
 
     if (proposedValueIsValid) {
         value = proposedValue;
+        dispatch("input", value);
     }
 };
 
@@ -47,6 +54,8 @@ const onChange = () => {
     entryActive = false;
     setDisplayToTrueValue();
     proposedValueIsValid = true;
+
+    dispatch("change", value);
 };
 
 const onBlur = () => {
@@ -72,13 +81,15 @@ const onClick = () => {
 
 <style lang="scss">
 input {
+    margin-bottom: 0.25rem;
+    width: 100%;
+
 	background: linear-gradient(90deg,
 			var(--col-slider-progress) var(--slider-progress-pct),
 			var(--col-slider-empty) var(--slider-progress-pct));
 	border: none;
 	color: inherit;
-
-	margin-bottom: 0.25rem;
+    
 	border-radius: 4px;
 
 	--slider-progress: 0;
@@ -93,7 +104,7 @@ input {
 
 	&:hover {
 		--col-slider-progress: #dd4f96;
-		--col-slider-empty: #d0f7e7;
+		--col-slider-empty: #bee7d6;
 	}
 	
 	&.inputing {

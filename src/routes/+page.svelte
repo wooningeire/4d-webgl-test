@@ -12,13 +12,22 @@ import fragmentShaderLineSource from "./fragment_line.glsl?raw";
 import { Mesh4 } from "@/lib/4d/Mesh4";
 import Overlays from "./Overlays.svelte";
 
+import createDragListener from "@/components/draggable";
+import modifierKeys from "@/components/modifier-keys";
+import { Orbit4 } from "@/lib/4d/CameraControl4";
+
 let canvas: HTMLCanvasElement;
 
 let resizeCanvasAndViewport = () => {};
 
-const camera4Transform = new Transform4(
+let camera4Transform = new Transform4(
     new Vector4(-0.5, -0.5, 0, -1.5),
     // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
+);
+
+let camera3Transform = new Transform4(
+    new Vector4(0.25, 0.5, -1, 0),
+    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
 );
 
 
@@ -181,11 +190,6 @@ onMount(() => {
     //#endregion
 
 
-    const camera3Transform = new Transform4(
-        new Vector4(0.25, 0.5, -1, 0),
-        // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
-    );
-
     
     const modelTransform = new Transform4(
         new Vector4(0, 0, 0, 0),
@@ -279,11 +283,48 @@ onMount(() => {
     requestAnimationFrame(draw);
 });
 
+// const orbit = new Orbit4();
+// camera3Transform = orbit.computeTransform();
+
+const beginDrag = createDragListener({
+    shouldCancel(event) {
+        return event.button !== 1; // Only allow wheel
+    },
+
+    onDrag(moveEvent) {
+        if ($modifierKeys.shift) {
+            const localLeft = camera3Transform.rotate.inverse().rotateVector(new Vector4(1, 0, 0, 0));
+            const localUp = camera3Transform.rotate.inverse().rotateVector(new Vector4(0, 1, 0, 0));
+
+            camera3Transform.translate = camera3Transform.translate
+                    .add(localLeft.scaled(-moveEvent.movementX / 1000))
+                    .add(localUp.scaled(moveEvent.movementY / 1000));
+            camera3Transform = camera3Transform;
+        } else {
+            camera3Transform.rotate = camera3Transform.rotate
+                    .mult(Rotor4.planeAngle([0, 1, 0, 0, 0, 0, 0], -moveEvent.movementX / 1000))
+                    .mult(Rotor4.planeAngle([0, 0, 0, 1, 0, 0, 0], moveEvent.movementY / 1000));
+            camera3Transform = camera3Transform;
+        }
+    },
+});
+
+const onWheel = (event: WheelEvent) => {
+    const localForward = camera3Transform.rotate.inverse().rotateVector(new Vector4(0, 0, -1, 0));
+
+    camera3Transform.translate = camera3Transform.translate
+            .add(localForward.scaled(event.deltaY / 1000))
+    camera3Transform = camera3Transform;
+};
+
 </script>
 
 <main>
-    <canvas bind:this={canvas}></canvas>
-    <Overlays {camera4Transform} />
+    <canvas bind:this={canvas}
+            on:pointerdown={beginDrag}
+            on:wheel={onWheel}></canvas>
+    <Overlays {camera4Transform}
+            {camera3Transform} />
 </main>
 
 <svelte:window on:resize={resizeCanvasAndViewport} />
