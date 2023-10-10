@@ -26,7 +26,8 @@ export let camera3Transform: Transform4;
                 showWAxis={false} />
 
         <h3>Rotate</h3>
-        <Rotor4Entry rotor={camera3Transform.rotate} />
+        <Rotor4Entry rotor={camera3Transform.rotate}
+                showWAxis={false} />
     </overlay-window>
 </overlays->
 

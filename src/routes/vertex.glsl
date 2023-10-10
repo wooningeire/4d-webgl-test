@@ -19,7 +19,11 @@ uniform mediump vec2 u_dimensions;
 
 out vec2 v_texcoord;
 out vec4 v_col;
-    
+
+
+/**
+ * Matrix-vector multiplication
+ */
 float vec5_dot_vec5(Vec5 a, Vec5 b) {
     return dot(a.v.xyzw, b.v.xyzw) + a.t * b.t;
 }
@@ -56,7 +60,7 @@ vec3 project4_to_3(Mat5 modelViewMatrix4, vec4 pos) {
 
 vec3 project3_to_2(mat4 viewMatrix3, vec3 pos) {
     vec4 untransformed = vec4(pos, 1.) * viewMatrix3;
-    return vec3(untransformed.xy / untransformed.z, untransformed.z / 1000. - 1.); // temp Z for depth
+    return vec3(untransformed.xy / untransformed.z, untransformed.z / 1000. - 1.0002); // temp Z for depth
 }
 
 void main() {

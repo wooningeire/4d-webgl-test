@@ -283,8 +283,8 @@ onMount(() => {
     requestAnimationFrame(draw);
 });
 
-// const orbit = new Orbit4();
-// camera3Transform = orbit.computeTransform();
+const orbit = new Orbit4();
+camera3Transform = orbit.computeTransform();
 
 const beginDrag = createDragListener({
     shouldCancel(event) {
@@ -293,28 +293,18 @@ const beginDrag = createDragListener({
 
     onDrag(moveEvent) {
         if ($modifierKeys.shift) {
-            const localLeft = camera3Transform.rotate.inverse().rotateVector(new Vector4(1, 0, 0, 0));
-            const localUp = camera3Transform.rotate.inverse().rotateVector(new Vector4(0, 1, 0, 0));
-
-            camera3Transform.translate = camera3Transform.translate
-                    .add(localLeft.scaled(-moveEvent.movementX / 1000))
-                    .add(localUp.scaled(moveEvent.movementY / 1000));
-            camera3Transform = camera3Transform;
+            orbit.pan(moveEvent.movementX, moveEvent.movementY);
+            camera3Transform = orbit.computeTransform();
         } else {
-            camera3Transform.rotate = camera3Transform.rotate
-                    .mult(Rotor4.planeAngle([0, 1, 0, 0, 0, 0, 0], -moveEvent.movementX / 1000))
-                    .mult(Rotor4.planeAngle([0, 0, 0, 1, 0, 0, 0], moveEvent.movementY / 1000));
-            camera3Transform = camera3Transform;
+            orbit.turn(moveEvent.movementX, moveEvent.movementY);
+            camera3Transform = orbit.computeTransform();
         }
     },
 });
 
 const onWheel = (event: WheelEvent) => {
-    const localForward = camera3Transform.rotate.inverse().rotateVector(new Vector4(0, 0, -1, 0));
-
-    camera3Transform.translate = camera3Transform.translate
-            .add(localForward.scaled(event.deltaY / 1000))
-    camera3Transform = camera3Transform;
+    orbit.zoom(event.deltaY);
+    camera3Transform = orbit.computeTransform();
 };
 
 </script>

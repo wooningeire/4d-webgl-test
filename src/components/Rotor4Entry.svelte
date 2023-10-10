@@ -3,10 +3,12 @@ import type { Rotor4 } from "@/lib/4d/vector";
 import BaseEntry from "./BaseEntry.svelte";
 
 export let rotor: Rotor4;
+export let showWAxis = true;
 
 enum EntryMode {
     Rotor,
     PlaneAngle,
+    Euler,
 }
 let entryMode = EntryMode.Rotor;
 </script>
@@ -15,6 +17,7 @@ let entryMode = EntryMode.Rotor;
     <select bind:value={entryMode}>
         <option value={EntryMode.Rotor}>Rotor</option>
         <option value={EntryMode.PlaneAngle}>Plane–angle</option>
+        <option value={EntryMode.Euler}>Euler</option>
     </select>
 
     {#if entryMode === EntryMode.Rotor}
@@ -25,16 +28,20 @@ let entryMode = EntryMode.Rotor;
             <BaseEntry bind:value={rotor[1]} />
             <label>XZ</label>
             <BaseEntry bind:value={rotor[2]} />
-            <label>XW</label>
-            <BaseEntry bind:value={rotor[3]} />
+            {#if showWAxis}
+                <label>XW</label>
+                <BaseEntry bind:value={rotor[3]} />
+            {/if}
             <label>YZ</label>
             <BaseEntry bind:value={rotor[4]} />
-            <label>YW</label>
-            <BaseEntry bind:value={rotor[5]} />
-            <label>ZW</label>
-            <BaseEntry bind:value={rotor[6]} />
-            <label>XYZW</label>
-            <BaseEntry bind:value={rotor[7]} />
+            {#if showWAxis}
+                <label>YW</label>
+                <BaseEntry bind:value={rotor[5]} />
+                <label>ZW</label>
+                <BaseEntry bind:value={rotor[6]} />
+                <label>XYZW</label>
+                <BaseEntry bind:value={rotor[7]} />
+            {/if}
         </div>
     {:else if entryMode === EntryMode.PlaneAngle}
         {@const angle = rotor.angle}
@@ -56,28 +63,34 @@ let entryMode = EntryMode.Rotor;
                     <label>XZ</label>
                     <BaseEntry bind:value={rotor[2]} />
                 </div>
-                <div style="--x: 4; --y; 1;">
-                    <label>XW</label>
-                    <BaseEntry bind:value={rotor[3]} />
-                </div>
+                {#if showWAxis}
+                    <div style="--x: 4; --y; 1;">
+                        <label>XW</label>
+                        <BaseEntry bind:value={rotor[3]} />
+                    </div>
+                {/if}
                 <div style="--x: 3; --y; 2;">
                     <label>YZ</label>
                     <BaseEntry bind:value={rotor[4]} />
                 </div>
-                <div style="--x: 4; --y; 2;">
-                    <label>YW</label>
-                    <BaseEntry bind:value={rotor[5]} />
-                </div>
-                <div style="--x: 4; --y; 3;">
-                    <label>ZW</label>
-                    <BaseEntry bind:value={rotor[6]} />
-                </div>
+                {#if showWAxis}
+                    <div style="--x: 4; --y; 2;">
+                        <label>YW</label>
+                        <BaseEntry bind:value={rotor[5]} />
+                    </div>
+                    <div style="--x: 4; --y; 3;">
+                        <label>ZW</label>
+                        <BaseEntry bind:value={rotor[6]} />
+                    </div>
+                {/if}
             </div>
 
-            <div>
-                <label>XYZW</label>
-                <BaseEntry bind:value={rotor[7]} />
-            </div>
+            {#if showWAxis}
+                <div>
+                    <label>XYZW</label>
+                    <BaseEntry bind:value={rotor[7]} />
+                </div>
+            {/if}
         </div>
     {/if}
 </rotor-entry>
