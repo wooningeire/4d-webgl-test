@@ -17,4 +17,15 @@ export const numberSetKey = (vertIndices: number[]): bigint => {
 	}
 	
 	return primitive;
-}
+};
+
+// https://stackoverflow.com/a/52490977
+// Start the accumulator with 0 elements
+export type NLengthTuple<T, Length extends number> = NLengthTupleBuilder<T, Length, []>;
+
+type NLengthTupleBuilder<T, TargetLength extends number, AccumulatorTuple extends T[]> =
+        AccumulatorTuple["length"] extends TargetLength
+                // When the accumulator has the desired length, return it as the tuple type
+                ? AccumulatorTuple
+                // Otherwise, extend the accumulator by one entry and check again
+                : NLengthTupleBuilder<T, TargetLength, [...AccumulatorTuple, T]>;

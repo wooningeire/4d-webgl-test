@@ -1,6 +1,6 @@
 import {Vector4} from "./vector";
-import {Mesh4, type Face} from "./Mesh4";
-import {numberSetKey} from "../util";
+import {Mesh4} from "./Mesh4";
+import {numberSetKey, type NLengthTuple} from "../util";
 
 const {sqrt, SQRT1_2, sign, abs, hypot} = Math;
 const PHI = (1 + sqrt(5)) / 2;
@@ -360,17 +360,6 @@ const generateHexadecachoronVerts = (): Vector4[] => {
 
 	return verts;
 };
-
-// https://stackoverflow.com/a/52490977
-// Start the accumulator with 0 elements
-type NLengthTuple<T, Length extends number> = NLengthTupleBuilder<T, Length, []>;
-
-type NLengthTupleBuilder<T, TargetLength extends number, AccumulatorTuple extends T[]> =
-        AccumulatorTuple["length"] extends TargetLength
-                // When the accumulator has the desired length, return it as the tuple type
-                ? AccumulatorTuple
-                // Otherwise, extend the accumulator by one entry and check again
-                : NLengthTupleBuilder<T, TargetLength, [...AccumulatorTuple, T]>;
 
 /**
  * Constructs a mesh cell-by-cell.

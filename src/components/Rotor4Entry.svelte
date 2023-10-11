@@ -51,34 +51,35 @@ let entryMode = EntryMode.Rotor;
             <div class="angle"
                     style:--progress={angle}>
                 <div class="annulus"></div>
-                <BaseEntry value={angle} />
+                <BaseEntry value={angle * 180 / Math.PI} />
             </div>
 
-            <div class="plane">
-                <div style="--x: 2; --y; 1;">
+            <div class="plane"
+                    class:no-w={!showWAxis}>
+                <div style="--x: 1; --y; 1;">
                     <label>XY</label>
                     <BaseEntry bind:value={rotor[1]} />
                 </div>
-                <div style="--x: 3; --y; 1;">
+                <div style="--x: 2; --y; 1;">
                     <label>XZ</label>
                     <BaseEntry bind:value={rotor[2]} />
                 </div>
                 {#if showWAxis}
-                    <div style="--x: 4; --y; 1;">
+                    <div style="--x: 3; --y; 1;">
                         <label>XW</label>
                         <BaseEntry bind:value={rotor[3]} />
                     </div>
                 {/if}
-                <div style="--x: 3; --y; 2;">
+                <div style="--x: 2; --y; 2;">
                     <label>YZ</label>
                     <BaseEntry bind:value={rotor[4]} />
                 </div>
                 {#if showWAxis}
-                    <div style="--x: 4; --y; 2;">
+                    <div style="--x: 3; --y; 2;">
                         <label>YW</label>
                         <BaseEntry bind:value={rotor[5]} />
                     </div>
-                    <div style="--x: 4; --y; 3;">
+                    <div style="--x: 3; --y; 3;">
                         <label>ZW</label>
                         <BaseEntry bind:value={rotor[6]} />
                     </div>
@@ -134,7 +135,10 @@ rotor-entry {
             width: calc(100% + 2rem);
             aspect-ratio: 1;
             
-            background: conic-gradient(from 0.25turn, #0000 var(--progress-angle), var(--col-red) var(--progress-angle));
+            background: conic-gradient(from 0.25turn,
+                    #b6dbcf5f var(--progress-angle),
+                    var(--col-red) var(--progress-angle),
+                    #dd4f96 calc(var(--progress-angle) + 1rad));
             mask-image: radial-gradient(closest-side, #0000 50%, #000 50%, #000 100%, #0000 100%);
         }
 
@@ -150,9 +154,14 @@ rotor-entry {
 
     > .plane {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
         column-gap: 0.5rem;
+
+        &.no-w {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
 
         > div {
             display: flex;

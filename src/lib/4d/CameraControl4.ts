@@ -6,7 +6,7 @@ import { Vector4, Rotor4 } from "@/lib/4d/vector";
  */
 type Multiple<N extends number, T> = T[] & {length: N};
 
-enum Plane {
+export enum Plane {
     Xy = 0,
     Xz = 1,
     Xw = 2,
@@ -14,12 +14,12 @@ enum Plane {
     Yw = 4,
     Zw = 5,
 }
-class Euler4 {
+export class Euler4 {
     static readonly Plane = Plane;
 
     constructor(
         public angles: Multiple<6, number>,
-        public angleOrdering: Multiple<6, Plane>,
+        public planeOrdering: Multiple<6, Plane>,
     ) {}
 
     asRotor(): Rotor4 {
@@ -27,12 +27,60 @@ class Euler4 {
         
         for (let i = 0; i < 6; i++) {
             const plane = [0, 0, 0, 0, 0, 0];
-            plane[this.angleOrdering[i]] = 1;
+            plane[this.planeOrdering[i]] = 1;
 
             rotor = rotor.mult(Rotor4.planeAngle(plane, this.angles[i]));
         }
 
         return rotor;
+    }
+
+    static fromRotor(rotor: Rotor4, planeOrdering: Multiple<6, Plane>): Euler4 {
+        const euler = new Euler4(
+            [0, 0, 0, 0, 0, 0],
+            planeOrdering,
+        );
+
+        // Use gradient descent
+
+        const EPSILON = 1e-8;
+
+        // Function to minimize
+        const f = (testEuler=euler) => {
+            const testRotor = testEuler.asRotor();
+            return rotor.sqDist(testRotor);
+        };
+        const partialDeriv = (current: number, plane: Plane) => {
+            const newAngles = [...euler.angles];
+            newAngles[plane] += EPSILON;
+
+            const newEuler = new Euler4(newAngles as Multiple<6, number>, planeOrdering);
+            const newCurrent = f(newEuler);
+
+            return (newCurrent - current) / EPSILON;
+        };
+
+
+        for (let iteration = 0; iteration < 128; iteration++) {
+            const current = f();
+            const gradient = [0, 1, 2, 3, 4, 5].map(plane => partialDeriv(current, plane));
+    
+            for (let i = 0; i < 6; i++) {
+                euler.angles[i] -= gradient[i] * Math.PI / 2;
+            }
+        }
+
+        // for (let i = 5; i >= 0; i--) {
+        //     const plane = [0, 0, 0, 0, 0, 0];
+        //     plane[planeOrdering[i]] = 1;
+
+        //     const rotorAngle = rotor.angle;
+        //     const rotorPlane = rotor.plane;
+
+
+        // }
+
+        return euler;
     }
 }
 

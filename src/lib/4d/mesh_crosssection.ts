@@ -6,6 +6,11 @@ import {numberSetKey} from "../util";
 type EdgeCrossSection = Edge | Vert | null;
 type FaceCrossSection = Face | Edge[] | null;
 
+/**
+ * Computes the cross-section of a mesh with the W = 0 3-space.
+ * @param cells 
+ * @returns 
+ */
 export const crossSect = (cells: Cell[]): [Vert[], Edge[], Face[], Cell[], EdgeLoop[]] => {
     const edgeIntersections = new Map<Edge, EdgeCrossSection>(); // To avoid recalculating intersections with the same edge
     const faceIntersections = new Map<Face, FaceCrossSection>();

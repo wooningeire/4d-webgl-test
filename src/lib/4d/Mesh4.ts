@@ -119,10 +119,21 @@ export class Mesh4 {
 		const channels: number[] = [];
 		// Assuming convex faces
 		for (const edgeLoops of this.faces) {
+			// const color = [
+			// 	Math.random() * 0.4 + 0.6,
+			// 	Math.random() * 0.4 + 0.6,
+			// 	Math.random() * 0.4 + 0.6,
+			// 	0.5,
+			// ];
+
+			const bivector = edgeLoops[2][0].subtract(edgeLoops[1][0])
+					.outer(edgeLoops[0][0].subtract(edgeLoops[1][0]))
+					.normalize();
+
 			const color = [
-				Math.random() * 0.4 + 0.6,
-				Math.random() * 0.4 + 0.6,
-				Math.random() * 0.4 + 0.6,
+				Math.abs(bivector.yz),
+				Math.abs(bivector.xz),
+				Math.abs(bivector.xy),
 				0.5,
 			];
 
@@ -264,6 +275,11 @@ export class Mesh4 {
 		);
 	}
 	
+	/**
+	 * Computes the cross-section of a mesh with the W = 0 3-space.
+	 * @param cells 
+	 * @returns 
+	 */
 	crossSect(/* space: Space3_4 */): Mesh4 {
 		return new Mesh4(...crossSect(this.cells));
 	}

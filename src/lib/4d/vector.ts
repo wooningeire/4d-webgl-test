@@ -99,6 +99,14 @@ export class Polymultivector extends Array<number> {
 		return true;
 	}
 
+	sqDist(pmvector: Polymultivector) {
+		let sqDist = 0;
+		for (let i = 0; i < this.length; i++) {
+			sqDist += (this[i] - pmvector[i]) ** 2;
+		}
+		return sqDist;
+	}
+
 	clone(): Polymultivector {
 		return new Polymultivector(this);
 	}
