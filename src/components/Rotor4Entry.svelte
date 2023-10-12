@@ -46,42 +46,45 @@ let entryMode = EntryMode.Rotor;
     {:else if entryMode === EntryMode.PlaneAngle}
         {@const angle = rotor.angle}
         {@const plane = rotor.plane}
+
+        {@debug plane}
     
         <div class="plane-angle">
             <div class="angle"
                     style:--progress={angle}>
                 <div class="annulus"></div>
-                <BaseEntry value={angle * 180 / Math.PI} />
+                <BaseEntry value={angle * 180 / Math.PI}
+                        transformDisplayValue={value => `${value}°`} />
             </div>
 
             <div class="plane"
                     class:no-w={!showWAxis}>
                 <div style="--x: 1; --y; 1;">
                     <label>XY</label>
-                    <BaseEntry bind:value={rotor[1]} />
+                    <BaseEntry value={plane[0]} />
                 </div>
                 <div style="--x: 2; --y; 1;">
                     <label>XZ</label>
-                    <BaseEntry bind:value={rotor[2]} />
+                    <BaseEntry value={plane[1]} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 1;">
                         <label>XW</label>
-                        <BaseEntry bind:value={rotor[3]} />
+                        <BaseEntry value={plane[2]} />
                     </div>
                 {/if}
                 <div style="--x: 2; --y; 2;">
                     <label>YZ</label>
-                    <BaseEntry bind:value={rotor[4]} />
+                    <BaseEntry value={plane[3]} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 2;">
                         <label>YW</label>
-                        <BaseEntry bind:value={rotor[5]} />
+                        <BaseEntry value={plane[4]} />
                     </div>
                     <div style="--x: 3; --y; 3;">
                         <label>ZW</label>
-                        <BaseEntry bind:value={rotor[6]} />
+                        <BaseEntry value={plane[5]} />
                     </div>
                 {/if}
             </div>
@@ -89,7 +92,7 @@ let entryMode = EntryMode.Rotor;
             {#if showWAxis}
                 <div>
                     <label>XYZW</label>
-                    <BaseEntry bind:value={rotor[7]} />
+                    <BaseEntry value={plane[6]} />
                 </div>
             {/if}
         </div>

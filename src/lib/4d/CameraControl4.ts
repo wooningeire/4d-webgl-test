@@ -1,10 +1,7 @@
 import { Transform4 } from "@/lib/4d/Transform4";
 import { Vector4, Rotor4 } from "@/lib/4d/vector";
 
-/**
- * An `N`-element tuple of `T`.
- */
-type Multiple<N extends number, T> = T[] & {length: N};
+import type {Multiple} from "@/lib/util";
 
 export enum Plane {
     Xy = 0,
@@ -43,7 +40,8 @@ export class Euler4 {
 
         // Use gradient descent
 
-        const EPSILON = 1e-8;
+        const EPSILON = 1e-15;
+        const N_ITERATIONS = 128;
 
         // Function to minimize
         const f = (testEuler=euler) => {
@@ -55,13 +53,16 @@ export class Euler4 {
             newAngles[plane] += EPSILON;
 
             const newEuler = new Euler4(newAngles as Multiple<6, number>, planeOrdering);
-            const newCurrent = f(newEuler);
+            const valueForward = f(newEuler);
+            
+            // newAngles[plane] -= 2 * EPSILON;
+            // const valueBackward = f(newEuler);
 
-            return (newCurrent - current) / EPSILON;
+            return (valueForward - current) / EPSILON;
         };
 
 
-        for (let iteration = 0; iteration < 128; iteration++) {
+        for (let iteration = 0; iteration < N_ITERATIONS; iteration++) {
             const current = f();
             const gradient = [0, 1, 2, 3, 4, 5].map(plane => partialDeriv(current, plane));
     
@@ -69,16 +70,6 @@ export class Euler4 {
                 euler.angles[i] -= gradient[i] * Math.PI / 2;
             }
         }
-
-        // for (let i = 5; i >= 0; i--) {
-        //     const plane = [0, 0, 0, 0, 0, 0];
-        //     plane[planeOrdering[i]] = 1;
-
-        //     const rotorAngle = rotor.angle;
-        //     const rotorPlane = rotor.plane;
-
-
-        // }
 
         return euler;
     }

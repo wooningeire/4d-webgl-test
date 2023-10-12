@@ -1,5 +1,5 @@
 <script lang="ts">
-import { createEventDispatcher } from "svelte";
+import { createEventDispatcher, tick } from "svelte";
 
 const acceptAlways = () => true;
 const identity = (value: number) => value;
@@ -9,6 +9,7 @@ export let value = 0;
 export let validate: (proposedValue: number) => boolean = isFinite;
 export let convertIn: (value: number) => number = identity;
 export let convertOut: (value: number) => number = identity;
+export let transformDisplayValue: (value: number) => string = value => value.toString();
 
 export let hasBounds = true;
 
@@ -20,7 +21,7 @@ const dispatch = createEventDispatcher<{
     change: number,
 }>();
 
-
+let enteredValue = value.toString();
 let proposedValueIsValid = true;
 let entryActive = false;
 
@@ -30,17 +31,21 @@ $: value, !entryActive && setDisplayToTrueValue();
 let element: HTMLInputElement | null = null;
 
 let displayValueUnprocessed = convertOut(value);
-$: displayValue = Number(displayValueUnprocessed.toFixed(nDecimals)).toString();
+$: displayValue = entryActive 
+        ? enteredValue.toString()
+        : transformDisplayValue(Number(displayValueUnprocessed.toFixed(nDecimals)));
 
 
 const setDisplayToTrueValue = () => {
     displayValueUnprocessed = convertOut(value);
+    enteredValue = value.toString();
 };
 
 
 const onInput = () => {
     entryActive = true;
 
+    enteredValue = element!.value;
     const proposedValue = convertIn(Number(element!.value));
     proposedValueIsValid = validate(proposedValue);
 
@@ -62,10 +67,12 @@ const onBlur = () => {
     entryActive = false;
 };
 
-const onClick = () => {
+const onClick = async () => {
     if (entryActive) return;
 
     entryActive = true;
+
+    await tick(); // Display value updates, need to wait a tick before selecting
     element!.select();
 };
 </script>

@@ -1,6 +1,6 @@
 import {Vector4} from "./vector";
 import {Mesh4} from "./Mesh4";
-import {numberSetKey, type NLengthTuple} from "../util";
+import {numberSetKey, type Multiple} from "../util";
 
 const {sqrt, SQRT1_2, sign, abs, hypot} = Math;
 const PHI = (1 + sqrt(5)) / 2;
@@ -53,7 +53,7 @@ export const construct = {
 
         const builder = new MeshCellBuilder();
         for (const cell of cellVertIndexes) {
-            builder.addTetrahedronCell(cell.map(vertIndex => verts[vertIndex]) as NLengthTuple<Vector4, 4>);
+            builder.addTetrahedronCell(cell.map(vertIndex => verts[vertIndex]) as Multiple<4, Vector4>);
         }
 		return builder.mesh();
 	},
@@ -76,7 +76,7 @@ export const construct = {
 
         const builder = new MeshCellBuilder();
         for (const cell of cellVertIndexes) {
-            builder.addHexahedronCell(cell.map(vertIndex => verts[vertIndex]) as NLengthTuple<Vector4, 8>);
+            builder.addHexahedronCell(cell.map(vertIndex => verts[vertIndex]) as Multiple<8, Vector4>);
         }
 		return builder.mesh();
     },
@@ -109,7 +109,7 @@ export const construct = {
 
         const builder = new MeshCellBuilder();
         for (const cell of cellVertIndexes) {
-            builder.addTetrahedronCell(cell.map(vertIndex => verts[vertIndex]) as NLengthTuple<Vector4, 4>);
+            builder.addTetrahedronCell(cell.map(vertIndex => verts[vertIndex]) as Multiple<4, Vector4>);
         }
 		return builder.mesh();
 	},
@@ -204,7 +204,7 @@ export const construct = {
         }
         const builder = new MeshCellBuilder();
         for (const cell of cellVertIndexes) {
-            builder.addOctahedronCell(cell.map(vertIndex => verts[vertIndex]) as NLengthTuple<Vector4, 6>);
+            builder.addOctahedronCell(cell.map(vertIndex => verts[vertIndex]) as Multiple<6, Vector4>);
         }
 		return builder.mesh();
 	},
@@ -235,7 +235,7 @@ export const construct = {
             [3, 1, 0, 2],
             [3, 2, 1, 0],
         ];
-        const generateEvenPerm4Verts = function* (values: NLengthTuple<number, 4>): Generator<Vector4, void, void> {
+        const generateEvenPerm4Verts = function* (values: Multiple<4, number>): Generator<Vector4, void, void> {
             for (const perm of evenPermutations4) {
                 yield new Vector4(...perm.map(index => values[index]));
             }
@@ -260,7 +260,7 @@ export const construct = {
             // [24, 120)
             // even permutations of (±φ, ±1, ±φ⁻¹, 0)
             ...[...generateSignCombinations([PHI/2, 1/2, PHI_I/2])]
-                    .map(values => [...generateEvenPerm4Verts([...values, 0] as NLengthTuple<number, 4>)])
+                    .map(values => [...generateEvenPerm4Verts([...values, 0] as Multiple<4, number>)])
                     .flat(),
         ];
 
@@ -429,7 +429,7 @@ class MeshCellBuilder {
      * @param verts Vertices, in any order
      * @returns 
      */
-    addTetrahedronCell(verts: NLengthTuple<Vector4, 4>): number[][] {
+    addTetrahedronCell(verts: Multiple<4, Vector4>): number[][] {
         return this.addCell(
             verts,
             [
@@ -446,7 +446,7 @@ class MeshCellBuilder {
      * @param verts Vertices, in binary counting order
      * @returns 
      */
-    addHexahedronCell(verts: NLengthTuple<Vector4, 8>): number[][] {
+    addHexahedronCell(verts: Multiple<8, Vector4>): number[][] {
         return this.addCell(
             verts,
             [
@@ -465,7 +465,7 @@ class MeshCellBuilder {
      * @param verts Vertices, in axis order
      * @returns 
      */
-    addOctahedronCell(verts: NLengthTuple<Vector4, 6>): number[][] {
+    addOctahedronCell(verts: Multiple<6, Vector4>): number[][] {
         return this.addCell(
             verts,
             [

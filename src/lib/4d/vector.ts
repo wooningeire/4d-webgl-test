@@ -107,6 +107,10 @@ export class Polymultivector extends Array<number> {
 		return sqDist;
 	}
 
+	dist(pmvector: Polymultivector) {
+		return Math.sqrt(this.sqDist(pmvector));
+	}
+
 	clone(): Polymultivector {
 		return new Polymultivector(this);
 	}

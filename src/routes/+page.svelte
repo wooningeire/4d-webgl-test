@@ -58,12 +58,9 @@ onMount(() => {
 
     //#endregion
 
-    const mesh = construct.regularHecatonicosachoron()
-            .transform(new Transform4(
-                new Vector4(0, 0, 0, 0.2),
-                Rotor4.planeAngle(new Vector4(0, 0, 0, 1).outer(new Vector4(1, 1, 0, 0)), Math.PI * 0)
-            ))
-            .crossSect();
+    const originalMesh = construct.regularHecatonicosachoron();
+
+    const mesh = originalMesh.crossSect();
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
 
@@ -79,7 +76,7 @@ onMount(() => {
 
     const vertBufferMesh = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
-    gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.DYNAMIC_DRAW);
 
     const posAttrMesh = gl.getAttribLocation(glProgramMesh, "a_pos");
     gl.vertexAttribPointer(posAttrMesh, COORD_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
@@ -92,7 +89,7 @@ onMount(() => {
 
     const colBufferMesh = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
-    gl.bufferData(gl.ARRAY_BUFFER, colsMesh, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, colsMesh, gl.DYNAMIC_DRAW);
 
     const colAttrMesh = gl.getAttribLocation(glProgramMesh, "a_col");
     gl.vertexAttribPointer(colAttrMesh, COL_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
@@ -199,6 +196,7 @@ onMount(() => {
 
     // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/4);
 
+    const currentTransform = new Transform4(new Vector4(.5, 0, 0, 0));
 
     resizeCanvasAndViewport = () => {
         // Scale up here (by `devicePixelRatio`) and scale down in CSS to appear sharp on high-DPI displays
@@ -214,7 +212,7 @@ onMount(() => {
         gl.viewport(0, 0, canvas.width, canvas.height);
     };
     const render = (now: number) => {
-        modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 0, 1, 0)), Math.PI * now / 3000)
+        // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 0, 1, 0)), Math.PI * now / 3000)
         // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * now / 3000)
         //         .mult(Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 3000));
         
@@ -254,6 +252,32 @@ onMount(() => {
         gl.uniformMatrix4fv(modelViewMatrix3MeshUnif, false, viewMatrix3);
         
         gl.bindVertexArray(vertArrayMesh);
+/* 
+        const newTransform = new Transform4(
+            // new Vector4(0, 0, 0, Math.sin(now / 2000)),
+            new Vector4(.5, 0, 0, 0),
+            Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 0, 0, 1)), Math.PI * now / 3000)
+                    .mult(Rotor4.planeAngle(new Vector4(0, 1, 0, 0).outer(new Vector4(0, 0, 1, 0)), Math.PI * now / 3000)),
+        );
+
+        const mesh = originalMesh
+                .transform(new Transform4(currentTransform.translate.scaled(-1)))
+                .transform(new Transform4(new Vector4(), currentTransform.rotate.inverse()))
+                .transform(newTransform)
+                .crossSect();
+        currentTransform.translate = newTransform.translate;
+        currentTransform.rotate = newTransform.rotate;
+
+
+        const vertCoordsMesh = new Float32Array(mesh.triangleCoords());
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.DYNAMIC_DRAW);
+        const nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
+
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mesh.triangleColors()), gl.DYNAMIC_DRAW); */
+
         gl.drawArrays(gl.TRIANGLES, 0, nVertsMesh);
 
 
