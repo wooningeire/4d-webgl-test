@@ -5,30 +5,20 @@ import {Gl} from "./Gl";
 import {Transform4} from "$/4d/Transform4";
 import {Bivector4, Rotor4, Vector4} from "$/4d/vector";
 import {construct} from "$/4d/construct";
+import { Euler4, Orbit4 } from "$/4d/CameraControl4";
+import { Mesh4 } from "$/4d/Mesh4";
 
 import vertexShaderSource from "./vertex.glsl?raw";
 import fragmentShaderMeshSource from "./fragment_mesh.glsl?raw";
 import fragmentShaderLineSource from "./fragment_line.glsl?raw";
-import { Mesh4 } from "@/lib/4d/Mesh4";
 import Overlays from "./Overlays.svelte";
 
 import createDragListener from "@/components/draggable";
 import modifierKeys from "@/components/modifier-keys";
-import { Orbit4 } from "@/lib/4d/CameraControl4";
 
 let canvas: HTMLCanvasElement;
 
 let resizeCanvasAndViewport = () => {};
-
-let camera4Transform = new Transform4(
-    new Vector4(-0.5, -0.5, 0, -1.5),
-    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
-);
-
-let camera3Transform = new Transform4(
-    new Vector4(0.25, 0.5, -1, 0),
-    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
-);
 
 
 onMount(() => {
@@ -58,7 +48,10 @@ onMount(() => {
 
     //#endregion
 
-    const originalMesh = construct.regularHecatonicosachoron();
+    const originalMesh = construct.regularHecatonicosachoron()
+            .transform(new Transform4(
+                new Vector4(0, 0, 0, 0.3),
+            ));
 
     const mesh = originalMesh.crossSect();
 
@@ -307,8 +300,31 @@ onMount(() => {
     requestAnimationFrame(draw);
 });
 
-const orbit = new Orbit4();
-camera3Transform = orbit.computeTransform();
+
+/* let camera4Transform = new Transform4(
+    // new Vector4(-0.5, -0.5, 0, -1.5),
+    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/4),
+);
+
+let camera3Transform = new Transform4(
+    // new Vector4(0.25, 0.5, -1, 0),
+    // Rotor4.planeAngle(new Vector4(0, 0, 1, 0).outer(new Vector4(1, 0, 0, 0)), Math.PI * 1/8),
+); */
+
+const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
+const orbit4 = Orbit4.fromInitialPosition(new Vector4(0, 0, 0, -1.5), {
+    forward: new Vector4(0, 0, 0, -1),
+    planeOrdering: [Xw, Yw, Zw, Xy, Xz, Yz], // Place the planes from each axis to W first
+    angleZeros: [3, 4, 5],
+});
+const orbit3 = Orbit4.fromInitialPosition(new Vector4(1, 1, -1), {
+    forward: new Vector4(0, 0, -1, 0),
+    planeOrdering: [Xz, Yz, Xy, Xw, Yw, Zw], // Place the planes from each axis (except W) to Z first; ignore the Ws
+    angleZeros: [2],
+});
+
+let camera4Transform = orbit4.computeTransform();
+let camera3Transform = orbit3.computeTransform();
 
 const beginDrag = createDragListener({
     shouldCancel(event) {
@@ -316,19 +332,38 @@ const beginDrag = createDragListener({
     },
 
     onDrag(moveEvent) {
-        if ($modifierKeys.shift) {
-            orbit.pan(moveEvent.movementX, moveEvent.movementY);
-            camera3Transform = orbit.computeTransform();
+        if ($modifierKeys.ctrl) {
+            if ($modifierKeys.shift) {
+                const globalRight = $modifierKeys.alt ? new Vector4(0, 0, 1, 0) : new Vector4(1, 0, 0, 0);
+
+                orbit4.pan(moveEvent.movementX, moveEvent.movementY, globalRight);
+                camera4Transform = orbit4.computeTransform();
+            } else {
+                const rightPlaneIndex = $modifierKeys.alt ? 2 : 0;
+
+                orbit4.turn(moveEvent.movementX, moveEvent.movementY, rightPlaneIndex);
+                camera4Transform = orbit4.computeTransform();
+            }
         } else {
-            orbit.turn(moveEvent.movementX, moveEvent.movementY);
-            camera3Transform = orbit.computeTransform();
+            if ($modifierKeys.shift) {
+                orbit3.pan(moveEvent.movementX, moveEvent.movementY);
+                camera3Transform = orbit3.computeTransform();
+            } else {
+                orbit3.turn(moveEvent.movementX, moveEvent.movementY);
+                camera3Transform = orbit3.computeTransform();
+            }
         }
     },
 });
 
 const onWheel = (event: WheelEvent) => {
-    orbit.zoom(event.deltaY);
-    camera3Transform = orbit.computeTransform();
+    if ($modifierKeys.ctrl) {
+        orbit4.zoom(event.deltaY);
+        camera4Transform = orbit4.computeTransform();
+    } else {
+        orbit3.zoom(event.deltaY);
+        camera3Transform = orbit3.computeTransform();
+    }
 };
 
 </script>
@@ -336,7 +371,7 @@ const onWheel = (event: WheelEvent) => {
 <main>
     <canvas bind:this={canvas}
             on:pointerdown={beginDrag}
-            on:wheel={onWheel}></canvas>
+            on:wheel|preventDefault={onWheel}></canvas>
     <Overlays {camera4Transform}
             {camera3Transform} />
 </main>

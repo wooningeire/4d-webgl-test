@@ -1,3 +1,7 @@
+<script lang="ts" context="module">
+let currentInstanceId = 0n;
+</script>
+
 <script lang="ts">
 import { Polymultivector, Rotor4 } from "@/lib/4d/vector";
 import BaseEntry from "./BaseEntry.svelte";
@@ -16,10 +20,25 @@ let entryMode = EntryMode.Rotor;
 
 let currentValueEdited = false;
 
-let enteredValueRotor = new Rotor4();
-let enteredValuePlaneAngle = {
-    angle: 0,
-    plane: [0, 0, 0, 0, 0, 0],
+
+//#region Entry data
+const invertedPlanes = Array(7).fill(false);
+
+
+let entryDataRotor = {
+    value: new Rotor4(),
+    invertedPlanes,
+
+    rotor() {
+        return this.value.map((comp, i) => comp * (this.invertedPlanes[i] ? -1 : 1));
+    },
+};
+let entryDataPlaneAngle = {
+    value: {
+        angle: 0,
+        plane: [0, 0, 0, 0, 0, 0],
+    },
+    invertedPlanes,
 };
 const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
 let enteredValueEuler = new Euler4(
@@ -30,14 +49,13 @@ const onInput = () => {
     currentValueEdited = true;
 
     switch (entryMode) {
+        // Do not mutate `rotor` from here
         case EntryMode.Rotor:
-            rotor.copy(new Polymultivector(enteredValueRotor).normalize());
-            // enteredValueRotor = enteredValueRotor;
+            rotor.copy(new Polymultivector(entryDataRotor.rotor()).normalize());
             break;
 
         case EntryMode.PlaneAngle: {
-            rotor.copy(Rotor4.planeAngle(enteredValuePlaneAngle.plane, enteredValuePlaneAngle.angle));
-            // enteredValuePlaneAngle = enteredValuePlaneAngle;
+            rotor.copy(Rotor4.planeAngle(entryDataPlaneAngle.value.plane, entryDataPlaneAngle.value.angle));
             break;
         }
 
@@ -53,7 +71,8 @@ const updateRotorInputs = () => {
 
     switch (entryMode) {
         case EntryMode.Rotor:
-            enteredValueRotor = enteredValueRotor.copy(rotor);
+            entryDataRotor.value.copy(rotor.map((comp, i) => comp * (entryDataRotor.invertedPlanes[i - 1] ? -1 : 1)));
+            entryDataRotor = entryDataRotor;
             break;
 
         case EntryMode.PlaneAngle: {
@@ -62,10 +81,11 @@ const updateRotorInputs = () => {
                     ? Array(7).fill(0)
                     : plane;
 
-            enteredValuePlaneAngle = {
+            entryDataPlaneAngle.value = {
                 angle: rotor.angle,
-                plane: newPlane,
-            };
+                plane: newPlane.map((comp, i) => comp * (entryDataRotor.invertedPlanes[i] ? -1 : 1)),
+            }
+            entryDataPlaneAngle = entryDataPlaneAngle;
             break;
         }
 
@@ -75,14 +95,41 @@ const updateRotorInputs = () => {
     }
 };
 
+const onPlaneInvert = (index: number) => {
+    switch (entryMode) {
+        case EntryMode.Rotor:
+            entryDataRotor.invertedPlanes[index] = !entryDataRotor.invertedPlanes[index];
+            updateRotorInputs();
+            break;
+
+        case EntryMode.PlaneAngle:
+            entryDataPlaneAngle.invertedPlanes[index] = !entryDataPlaneAngle.invertedPlanes[index];
+            updateRotorInputs();
+            break;
+
+        case EntryMode.Euler:
+            break;
+    }
+};
+
 const planeLabels = new Map([
-    [Xy, "XY"],
-    [Xz, "XZ"],
-    [Xw, "XW"],
-    [Yz, "YZ"],
-    [Yw, "YW"],
-    [Zw, "ZW"],
-])
+    [Xy, ["XY", "YX"]],
+    [Xz, ["XZ", "ZX"]],
+    [Xw, ["XW", "WX"]],
+    [Yz, ["YZ", "ZY"]],
+    [Yw, ["YW", "WY"]],
+    [Zw, ["ZW", "WZ"]],
+    [6, ["XYZW", "−XYZW"]],
+]);
+const rotorPlaneLabel = (index: number) => {
+    return planeLabels.get(index)?.[Number(entryDataRotor.invertedPlanes[index])];
+};
+
+//#endregion
+
+let instanceId = currentInstanceId;
+currentInstanceId++;
+const labelId = (string: string) => `rotor-${instanceId}-${string}`;
 </script>
 
 <rotor-entry>
@@ -94,32 +141,40 @@ const planeLabels = new Map([
 
     {#if entryMode === EntryMode.Rotor}
         <div class="key-value">
-            <label>1</label>
-            <BaseEntry bind:value={enteredValueRotor[0]}
+            <label for={labelId("1")}>1</label>
+            <BaseEntry bind:value={entryDataRotor.value[0]}
+                    on:input={onInput}
+                    elementId={labelId("1")} />
+
+            <button on:click={() => onPlaneInvert(0)}>{entryDataRotor.invertedPlanes[0], rotorPlaneLabel(0)}</button>
+            <BaseEntry bind:value={entryDataRotor.value[1]}
                     on:input={onInput} />
-            <label>XY</label>
-            <BaseEntry bind:value={enteredValueRotor[1]}
+
+            <button on:click={() => onPlaneInvert(1)}>{entryDataRotor.invertedPlanes[1], rotorPlaneLabel(1)}</button>
+            <BaseEntry bind:value={entryDataRotor.value[2]}
                     on:input={onInput} />
-            <label>XZ</label>
-            <BaseEntry bind:value={enteredValueRotor[2]}
-                    on:input={onInput} />
+
             {#if showWAxis}
-                <label>XW</label>
-                <BaseEntry bind:value={enteredValueRotor[3]}
+                <button on:click={() => onPlaneInvert(2)}>{entryDataRotor.invertedPlanes[2], rotorPlaneLabel(2)}</button>
+                <BaseEntry bind:value={entryDataRotor.value[3]}
                         on:input={onInput} />
             {/if}
-            <label>YZ</label>
-            <BaseEntry bind:value={enteredValueRotor[4]}
+
+            <button on:click={() => onPlaneInvert(3)}>{entryDataRotor.invertedPlanes[3], rotorPlaneLabel(3)}</button>
+            <BaseEntry bind:value={entryDataRotor.value[4]}
                     on:input={onInput} />
+
             {#if showWAxis}
-                <label>YW</label>
-                <BaseEntry bind:value={enteredValueRotor[5]}
+                <button on:click={() => onPlaneInvert(4)}>{entryDataRotor.invertedPlanes[4], rotorPlaneLabel(4)}</button>
+                <BaseEntry bind:value={entryDataRotor.value[5]}
                         on:input={onInput} />
-                <label>ZW</label>
-                <BaseEntry bind:value={enteredValueRotor[6]}
+
+                <button on:click={() => onPlaneInvert(5)}>{entryDataRotor.invertedPlanes[5], rotorPlaneLabel(5)}</button>
+                <BaseEntry bind:value={entryDataRotor.value[6]}
                         on:input={onInput} />
-                <label>XYZW</label>
-                <BaseEntry bind:value={enteredValueRotor[7]}
+
+                <button on:click={() => onPlaneInvert(6)}>{entryDataRotor.invertedPlanes[6], rotorPlaneLabel(6)}</button>
+                <BaseEntry bind:value={entryDataRotor.value[7]}
                         on:input={onInput} />
             {/if}
 
@@ -127,9 +182,9 @@ const planeLabels = new Map([
     {:else if entryMode === EntryMode.PlaneAngle}
         <div class="plane-angle">
             <div class="angle"
-                    style:--progress={mod(enteredValuePlaneAngle.angle, 2 * Math.PI)}>
+                    style:--progress={mod(entryDataPlaneAngle.value.angle, 2 * Math.PI)}>
                 <div class="annulus"></div>
-                <BaseEntry bind:value={enteredValuePlaneAngle.angle}
+                <BaseEntry bind:value={entryDataPlaneAngle.value.angle}
                         convertIn={angle => angle / 180 * Math.PI}
                         convertOut={angle => angle * 180 / Math.PI}
                         transformDisplayValue={value => `${value}°`}
@@ -141,36 +196,36 @@ const planeLabels = new Map([
                     class:no-w={!showWAxis}>
 
                 <div style="--x: 1; --y; 1;">
-                    <label>XY</label>
-                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[0]}
+                    <button on:click={() => onPlaneInvert(0)}>{entryDataPlaneAngle.invertedPlanes[0], rotorPlaneLabel(0)}</button>
+                    <BaseEntry bind:value={entryDataPlaneAngle.value.plane[0]}
                             on:input={onInput} />
                 </div>
                 <div style="--x: 2; --y; 1;">
-                    <label>XZ</label>
-                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[1]}
+                    <button on:click={() => onPlaneInvert(1)}>{entryDataPlaneAngle.invertedPlanes[1], rotorPlaneLabel(1)}</button>
+                    <BaseEntry bind:value={entryDataPlaneAngle.value.plane[1]}
                             on:input={onInput} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 1;">
-                        <label>XW</label>
-                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[2]}
+                        <button on:click={() => onPlaneInvert(2)}>{entryDataPlaneAngle.invertedPlanes[2], rotorPlaneLabel(2)}</button>
+                        <BaseEntry bind:value={entryDataPlaneAngle.value.plane[2]}
                                 on:input={onInput} />
                     </div>
                 {/if}
                 <div style="--x: 2; --y; 2;">
-                    <label>YZ</label>
-                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[3]}
+                    <button on:click={() => onPlaneInvert(3)}>{entryDataPlaneAngle.invertedPlanes[3], rotorPlaneLabel(3)}</button>
+                    <BaseEntry bind:value={entryDataPlaneAngle.value.plane[3]}
                             on:input={onInput} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 2;">
-                        <label>YW</label>
-                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[4]}
+                        <button on:click={() => onPlaneInvert(4)}>{entryDataPlaneAngle.invertedPlanes[4], rotorPlaneLabel(4)}</button>
+                        <BaseEntry bind:value={entryDataPlaneAngle.value.plane[4]}
                                 on:input={onInput} />
                     </div>
                     <div style="--x: 3; --y; 3;">
-                        <label>ZW</label>
-                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[5]}
+                        <button on:click={() => onPlaneInvert(5)}>{entryDataPlaneAngle.invertedPlanes[5], rotorPlaneLabel(5)}</button>
+                        <BaseEntry bind:value={entryDataPlaneAngle.value.plane[5]}
                                 on:input={onInput} />
                     </div>
                 {/if}
@@ -178,8 +233,8 @@ const planeLabels = new Map([
 
             {#if showWAxis}
                 <div>
-                    <label>XYZW</label>
-                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[6]}
+                    <button on:click={() => onPlaneInvert(6)}>{entryDataPlaneAngle.invertedPlanes[6], rotorPlaneLabel(6)}</button>
+                    <BaseEntry bind:value={entryDataPlaneAngle.value.plane[6]}
                             on:input={onInput} />
                 </div>
             {/if}
@@ -188,7 +243,7 @@ const planeLabels = new Map([
         <div class="key-value">
             {#each enteredValueEuler.angles as angle, i}
                 {#if showWAxis || i < 3}
-                    <label>{planeLabels.get(enteredValueEuler.planeOrdering[i])}</label>
+                    <label>{planeLabels.get(enteredValueEuler.planeOrdering[i])?.[0]}</label>
                     <BaseEntry bind:value={angle}
                             convertIn={angle => angle / 180 * Math.PI}
                             convertOut={angle => angle * 180 / Math.PI}

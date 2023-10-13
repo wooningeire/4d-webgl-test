@@ -191,8 +191,11 @@ export class Rotor4 extends Polymultivector {
 	 * @returns {Rotor4} 
 	 */
 	static between(vector0: Vector4, vector1: Vector4): Rotor4 {
-		// Why do I need to add 1 to the dot product?
-		return this.scalarBivector(1 + vector0.dot(vector1), vector0.outer(vector1)).normalize();
+		const angle = Math.acos(vector0.normalized().dot(vector1.normalized()));
+
+		const scalar = Math.cos(angle / 2);
+		const bivector = vector0.outer(vector1).normalized().scaled(Math.sin(angle / 2));
+		return this.scalarBivector(scalar, bivector).normalize();
 	}
 
 	/**

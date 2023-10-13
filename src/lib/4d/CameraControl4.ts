@@ -74,17 +74,49 @@ export class Euler4 {
 
 export class Orbit4 {
     constructor(
+        public forward: Vector4,
         public center=new Vector4(),
         // public orientation: Rotor4=new Rotor4(),
         public orientationEuler=new Euler4(
             [0, 0, 0, 0, 0, 0],
-            [Plane.Xz, Plane.Yz, Plane.Xy, Plane.Xw, Plane.Yw, Plane.Zw],
+            [Plane.Xy, Plane.Xz, Plane.Yz, Plane.Xw, Plane.Yw, Plane.Zw],
         ),
         public distance=1,
     ) {}
+            
+    static fromInitialPosition(
+        position: Vector4,
+        {
+            forward,
+            center=new Vector4(),
+            planeOrdering=[Plane.Xz, Plane.Yz, Plane.Xy, Plane.Xw, Plane.Yw, Plane.Zw],
+            angleZeros=[],
+        }: {
+            forward: Vector4,
+            center?: Vector4,
+            planeOrdering?: Multiple<6, Plane>,
+            angleZeros?: number[],
+        },
+    ) {
+        const euler = Euler4.fromRotor(
+            Rotor4.between(forward, center.subtract(position)),
+            planeOrdering,
+        );
+
+        for (const index of angleZeros) {
+            euler.angles[index] = 0;
+        }
+
+        return new Orbit4(
+            forward,
+            center,
+            euler,
+            position.dist(center),
+        );
+    }
 
     get position() {
-        const localForward = this.orientation.inverse().rotateVector(new Vector4(0, 0, -1, 0));
+        const localForward = this.orientation.inverse().rotateVector(this.forward);
         return this.center.add(localForward.scaled(this.distance));
     }
 
@@ -99,22 +131,22 @@ export class Orbit4 {
         );
     }
 
-    pan(deltaX: number, deltaY: number) {
-        const localRight = this.orientation.inverse().rotateVector(new Vector4(1, 0, 0, 0));
-        const localUp = this.orientation.inverse().rotateVector(new Vector4(0, 1, 0, 0));
+    pan(deltaX: number, deltaY: number, globalRight=new Vector4(1, 0, 0, 0), globalUp=new Vector4(0, 1, 0, 0)) {
+        const localRight = this.orientation.inverse().rotateVector(globalRight);
+        const localUp = this.orientation.inverse().rotateVector(globalUp);
 
         this.center = this.center
                 .add(localRight.scaled(-deltaX * this.distance / 1000))
                 .add(localUp.scaled(deltaY * this.distance / 1000));
     }
 
-    turn(deltaX: number, deltaY: number) {
+    turn(deltaX: number, deltaY: number, rightPlaneIndex=0, upPlaneIndex=1) {
         // this.orientation = this.orientation
         //         .mult(Rotor4.planeAngle([0, 1, 0, 0, 0, 0, 0], deltaX / 500))
         //         .mult(Rotor4.planeAngle([0, 0, 0, 1, 0, 0, 0], -deltaY / 500));
 
-        this.orientationEuler.angles[0] += deltaX / 250;
-        this.orientationEuler.angles[1] += -deltaY / 250;
+        this.orientationEuler.angles[rightPlaneIndex] += deltaX / 250;
+        this.orientationEuler.angles[upPlaneIndex] += -deltaY / 250;
     }
 
     zoom(deltaY: number) {

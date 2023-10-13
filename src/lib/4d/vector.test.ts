@@ -76,4 +76,17 @@ describe.concurrent(Rotor4.name, () => {
             expect(vecOut1[i]).toBeCloseTo(vecExp1[i]);
         });
     });
+
+    it("calculates rotor between two vectors correctly", async () => {
+        const vec0 = new Vector4(1, 2, 3, 4);
+        const vec1 = new Vector4(4, 3, 2, 1);
+        const rotor = Rotor4.between(vec0, vec1);
+
+        console.log(rotor);
+
+        const vecOut = rotor.rotateVector(vec0);
+        vecOut.forEach((_, i) => {
+            expect(vecOut[i]).toBeCloseTo(vec1[i]);
+        })
+    });
 });
