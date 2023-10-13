@@ -34,3 +34,6 @@ type NLengthTupleBuilder<T, TargetLength extends number, AccumulatorTuple extend
  * An `N`-element tuple of `T`.
  */
 export type Multiple<N extends number, T> = T[] & {length: N};
+
+
+export const mod = (a: number, b: number) => (a % b + b) % b;

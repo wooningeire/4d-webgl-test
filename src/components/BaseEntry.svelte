@@ -15,13 +15,14 @@ export let hasBounds = true;
 
 export let step = 1e-3;
 export let nDecimals = 4;
+export let elementId: string | undefined = undefined;
 
 const dispatch = createEventDispatcher<{
     input: number,
     change: number,
 }>();
 
-let enteredValue = value.toString();
+let enteredValue = convertOut(value).toString();
 let proposedValueIsValid = true;
 let entryActive = false;
 
@@ -32,13 +33,13 @@ let element: HTMLInputElement | null = null;
 
 let displayValueUnprocessed = convertOut(value);
 $: displayValue = entryActive 
-        ? enteredValue.toString()
+        ? enteredValue
         : transformDisplayValue(Number(displayValueUnprocessed.toFixed(nDecimals)));
 
 
 const setDisplayToTrueValue = () => {
     displayValueUnprocessed = convertOut(value);
-    enteredValue = value.toString();
+    enteredValue = convertOut(value).toString();
 };
 
 
@@ -84,7 +85,8 @@ const onClick = async () => {
         on:blur={onBlur}
         on:click={onClick}
         class:invalid={!proposedValueIsValid}
-        class:inputing={entryActive} />
+        class:inputing={entryActive}
+        id={elementId} />
 
 <style lang="scss">
 input {

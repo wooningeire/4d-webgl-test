@@ -54,9 +54,6 @@ export class Euler4 {
 
             const newEuler = new Euler4(newAngles as Multiple<6, number>, planeOrdering);
             const valueForward = f(newEuler);
-            
-            // newAngles[plane] -= 2 * EPSILON;
-            // const valueBackward = f(newEuler);
 
             return (valueForward - current) / EPSILON;
         };

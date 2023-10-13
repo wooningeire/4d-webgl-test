@@ -60,7 +60,7 @@ vec3 project4_to_3(Mat5 modelViewMatrix4, vec4 pos) {
 
 vec3 project3_to_2(mat4 viewMatrix3, vec3 pos) {
     vec4 untransformed = vec4(pos, 1.) * viewMatrix3;
-    return vec3(untransformed.xy / untransformed.z, untransformed.z / 1000. - 1.0002); // temp Z for depth
+    return vec3(untransformed.xy / untransformed.z, untransformed.z / 1000. - 1.0004); // temp Z for depth
 }
 
 void main() {

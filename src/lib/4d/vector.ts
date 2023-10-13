@@ -70,6 +70,10 @@ export class Polymultivector extends Array<number> {
 		return this;
 	}
 
+	normalized() {
+		return this.scaled(1 / this.mag);
+	}
+
 	/**
 	 * Determines whether two polymultivectors have the same values.
 	 * @param {Polymultivector} pmvector 

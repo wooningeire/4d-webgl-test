@@ -1,6 +1,8 @@
 <script lang="ts">
-import type { Rotor4 } from "@/lib/4d/vector";
+import { Polymultivector, Rotor4 } from "@/lib/4d/vector";
 import BaseEntry from "./BaseEntry.svelte";
+import { mod } from "@/lib/util";
+import { Euler4 } from "@/lib/4d/CameraControl4";
 
 export let rotor: Rotor4;
 export let showWAxis = true;
@@ -11,6 +13,76 @@ enum EntryMode {
     Euler,
 }
 let entryMode = EntryMode.Rotor;
+
+let currentValueEdited = false;
+
+let enteredValueRotor = new Rotor4();
+let enteredValuePlaneAngle = {
+    angle: 0,
+    plane: [0, 0, 0, 0, 0, 0],
+};
+const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
+let enteredValueEuler = new Euler4(
+    [0, 0, 0, 0, 0, 0],
+    [Xz, Yz, Xy, Xw, Yw, Zw],
+);
+const onInput = () => {
+    currentValueEdited = true;
+
+    switch (entryMode) {
+        case EntryMode.Rotor:
+            rotor.copy(new Polymultivector(enteredValueRotor).normalize());
+            // enteredValueRotor = enteredValueRotor;
+            break;
+
+        case EntryMode.PlaneAngle: {
+            rotor.copy(Rotor4.planeAngle(enteredValuePlaneAngle.plane, enteredValuePlaneAngle.angle));
+            // enteredValuePlaneAngle = enteredValuePlaneAngle;
+            break;
+        }
+
+        case EntryMode.Euler:
+            rotor.copy(enteredValueEuler.asRotor());
+            break;
+    }
+};
+
+$: rotor, entryMode, updateRotorInputs();
+const updateRotorInputs = () => {
+    currentValueEdited = false;
+
+    switch (entryMode) {
+        case EntryMode.Rotor:
+            enteredValueRotor = enteredValueRotor.copy(rotor);
+            break;
+
+        case EntryMode.PlaneAngle: {
+            const plane = rotor.plane;
+            const newPlane = plane.some(isNaN)
+                    ? Array(7).fill(0)
+                    : plane;
+
+            enteredValuePlaneAngle = {
+                angle: rotor.angle,
+                plane: newPlane,
+            };
+            break;
+        }
+
+        case EntryMode.Euler:
+            enteredValueEuler = Euler4.fromRotor(rotor, enteredValueEuler.planeOrdering);
+            break;
+    }
+};
+
+const planeLabels = new Map([
+    [Xy, "XY"],
+    [Xz, "XZ"],
+    [Xw, "XW"],
+    [Yz, "YZ"],
+    [Yw, "YW"],
+    [Zw, "ZW"],
+])
 </script>
 
 <rotor-entry>
@@ -21,70 +93,85 @@ let entryMode = EntryMode.Rotor;
     </select>
 
     {#if entryMode === EntryMode.Rotor}
-        <div class="octuplet">
+        <div class="key-value">
             <label>1</label>
-            <BaseEntry bind:value={rotor[0]} />
+            <BaseEntry bind:value={enteredValueRotor[0]}
+                    on:input={onInput} />
             <label>XY</label>
-            <BaseEntry bind:value={rotor[1]} />
+            <BaseEntry bind:value={enteredValueRotor[1]}
+                    on:input={onInput} />
             <label>XZ</label>
-            <BaseEntry bind:value={rotor[2]} />
+            <BaseEntry bind:value={enteredValueRotor[2]}
+                    on:input={onInput} />
             {#if showWAxis}
                 <label>XW</label>
-                <BaseEntry bind:value={rotor[3]} />
+                <BaseEntry bind:value={enteredValueRotor[3]}
+                        on:input={onInput} />
             {/if}
             <label>YZ</label>
-            <BaseEntry bind:value={rotor[4]} />
+            <BaseEntry bind:value={enteredValueRotor[4]}
+                    on:input={onInput} />
             {#if showWAxis}
                 <label>YW</label>
-                <BaseEntry bind:value={rotor[5]} />
+                <BaseEntry bind:value={enteredValueRotor[5]}
+                        on:input={onInput} />
                 <label>ZW</label>
-                <BaseEntry bind:value={rotor[6]} />
+                <BaseEntry bind:value={enteredValueRotor[6]}
+                        on:input={onInput} />
                 <label>XYZW</label>
-                <BaseEntry bind:value={rotor[7]} />
+                <BaseEntry bind:value={enteredValueRotor[7]}
+                        on:input={onInput} />
             {/if}
+
         </div>
     {:else if entryMode === EntryMode.PlaneAngle}
-        {@const angle = rotor.angle}
-        {@const plane = rotor.plane}
-
-        {@debug plane}
-    
         <div class="plane-angle">
             <div class="angle"
-                    style:--progress={angle}>
+                    style:--progress={mod(enteredValuePlaneAngle.angle, 2 * Math.PI)}>
                 <div class="annulus"></div>
-                <BaseEntry value={angle * 180 / Math.PI}
-                        transformDisplayValue={value => `${value}°`} />
+                <BaseEntry bind:value={enteredValuePlaneAngle.angle}
+                        convertIn={angle => angle / 180 * Math.PI}
+                        convertOut={angle => angle * 180 / Math.PI}
+                        transformDisplayValue={value => `${value}°`}
+                        nDecimals={1}
+                        on:input={onInput} />
             </div>
 
             <div class="plane"
                     class:no-w={!showWAxis}>
+
                 <div style="--x: 1; --y; 1;">
                     <label>XY</label>
-                    <BaseEntry value={plane[0]} />
+                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[0]}
+                            on:input={onInput} />
                 </div>
                 <div style="--x: 2; --y; 1;">
                     <label>XZ</label>
-                    <BaseEntry value={plane[1]} />
+                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[1]}
+                            on:input={onInput} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 1;">
                         <label>XW</label>
-                        <BaseEntry value={plane[2]} />
+                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[2]}
+                                on:input={onInput} />
                     </div>
                 {/if}
                 <div style="--x: 2; --y; 2;">
                     <label>YZ</label>
-                    <BaseEntry value={plane[3]} />
+                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[3]}
+                            on:input={onInput} />
                 </div>
                 {#if showWAxis}
                     <div style="--x: 3; --y; 2;">
                         <label>YW</label>
-                        <BaseEntry value={plane[4]} />
+                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[4]}
+                                on:input={onInput} />
                     </div>
                     <div style="--x: 3; --y; 3;">
                         <label>ZW</label>
-                        <BaseEntry value={plane[5]} />
+                        <BaseEntry bind:value={enteredValuePlaneAngle.plane[5]}
+                                on:input={onInput} />
                     </div>
                 {/if}
             </div>
@@ -92,11 +179,28 @@ let entryMode = EntryMode.Rotor;
             {#if showWAxis}
                 <div>
                     <label>XYZW</label>
-                    <BaseEntry value={plane[6]} />
+                    <BaseEntry bind:value={enteredValuePlaneAngle.plane[6]}
+                            on:input={onInput} />
                 </div>
             {/if}
         </div>
+    {:else if entryMode === EntryMode.Euler}
+        <div class="key-value">
+            {#each enteredValueEuler.angles as angle, i}
+                {#if showWAxis || i < 3}
+                    <label>{planeLabels.get(enteredValueEuler.planeOrdering[i])}</label>
+                    <BaseEntry bind:value={angle}
+                            convertIn={angle => angle / 180 * Math.PI}
+                            convertOut={angle => angle * 180 / Math.PI}
+                            transformDisplayValue={value => `${value}°`}
+                            on:input={onInput} />
+                {/if}
+            {/each}
+        </div>
     {/if}
+
+    <button on:click={updateRotorInputs}
+            disabled={!currentValueEdited}>Normalize</button>
 </rotor-entry>
 
 <style lang="scss">
@@ -107,7 +211,7 @@ rotor-entry {
     align-items: center;
 }
 
-.octuplet {
+.key-value {
     display: grid;
     grid-template-columns: auto 1fr;
     column-gap: 0.5rem;
