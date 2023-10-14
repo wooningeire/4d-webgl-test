@@ -128,7 +128,7 @@ export class Mesh4 {
 
 			const bivector = edgeLoops[2][0].subtract(edgeLoops[1][0])
 					.outer(edgeLoops[0][0].subtract(edgeLoops[1][0]))
-					.normalize();
+					.normalized();
 
 			const color = [
 				Math.abs(bivector.yz),

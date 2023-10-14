@@ -3,13 +3,21 @@ let currentInstanceId = 0n;
 </script>
 
 <script lang="ts">
-import { Polymultivector, Rotor4 } from "@/lib/4d/vector";
 import BaseEntry from "./BaseEntry.svelte";
-import { mod } from "@/lib/util";
-import { Euler4 } from "@/lib/4d/CameraControl4";
+
+import { Polymultivector, Rotor4 } from "$/4d/vector";
+import { mod, type Multiple } from "$/util";
+import { Euler4, EulerPlane } from "$/4d/CameraControl4";
+    import Euler4Entry from "./Euler4Entry.svelte";
+
+
+const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
 
 export let rotor: Rotor4;
 export let showWAxis = true;
+export let eulerPlaneOrdering: Multiple<6, EulerPlane> = showWAxis
+        ? [Xw, Yw, Zw, Xz, Yz, Xy]
+        : [Xz, Yz, Xy, Xw, Yw, Zw];
 
 enum EntryMode {
     Rotor,
@@ -40,11 +48,13 @@ let entryDataPlaneAngle = {
     },
     invertedPlanes,
 };
-const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
-let enteredValueEuler = new Euler4(
-    [0, 0, 0, 0, 0, 0],
-    [Xz, Yz, Xy, Xw, Yw, Zw],
-);
+let entryDataEuler = {
+    value: new Euler4(
+        [0, 0, 0, 0, 0, 0],
+        eulerPlaneOrdering,
+    ),
+    invertedPlanes: Array(6).fill(false),
+};
 const onInput = () => {
     currentValueEdited = true;
 
@@ -60,7 +70,7 @@ const onInput = () => {
         }
 
         case EntryMode.Euler:
-            rotor.copy(enteredValueEuler.asRotor());
+            rotor.copy(entryDataEuler.value.asRotor());
             break;
     }
 };
@@ -90,7 +100,8 @@ const updateRotorInputs = () => {
         }
 
         case EntryMode.Euler:
-            enteredValueEuler = Euler4.fromRotor(rotor, enteredValueEuler.planeOrdering);
+            entryDataEuler.value = Euler4.fromRotor(rotor, entryDataEuler.value.planeOrdering);
+            entryDataEuler = entryDataEuler;
             break;
     }
 };
@@ -240,17 +251,9 @@ const labelId = (string: string) => `rotor-${instanceId}-${string}`;
             {/if}
         </div>
     {:else if entryMode === EntryMode.Euler}
-        <div class="key-value">
-            {#each enteredValueEuler.angles as angle, i}
-                {#if showWAxis || i < 3}
-                    <label>{planeLabels.get(enteredValueEuler.planeOrdering[i])?.[0]}</label>
-                    <BaseEntry bind:value={angle}
-                            convertIn={angle => angle / 180 * Math.PI}
-                            convertOut={angle => angle * 180 / Math.PI}
-                            transformDisplayValue={value => `${value}°`}
-                            on:input={onInput} />
-                {/if}
-            {/each}
+        <div class="euler">
+            <Euler4Entry bind:euler={entryDataEuler.value}
+                    {showWAxis} />
         </div>
     {/if}
 

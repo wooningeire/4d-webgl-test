@@ -3,7 +3,7 @@ import { Vector4, Rotor4 } from "@/lib/4d/vector";
 
 import type {Multiple} from "@/lib/util";
 
-export enum Plane {
+export enum EulerPlane {
     Xy = 0,
     Xz = 1,
     Xw = 2,
@@ -11,12 +11,13 @@ export enum Plane {
     Yw = 4,
     Zw = 5,
 }
+const {Xy, Xz, Xw, Yz, Yw, Zw} = EulerPlane;
 export class Euler4 {
-    static readonly Plane = Plane;
+    static readonly Plane = EulerPlane;
 
     constructor(
         public angles: Multiple<6, number>,
-        public planeOrdering: Multiple<6, Plane>,
+        public planeOrdering: Multiple<6, EulerPlane>,
     ) {}
 
     asRotor(): Rotor4 {
@@ -32,7 +33,7 @@ export class Euler4 {
         return rotor;
     }
 
-    static fromRotor(rotor: Rotor4, planeOrdering: Multiple<6, Plane>): Euler4 {
+    static fromRotor(rotor: Rotor4, planeOrdering: Multiple<6, EulerPlane>): Euler4 {
         const euler = new Euler4(
             [0, 0, 0, 0, 0, 0],
             planeOrdering,
@@ -48,7 +49,7 @@ export class Euler4 {
             const testRotor = testEuler.asRotor();
             return rotor.sqDist(testRotor);
         };
-        const partialDeriv = (current: number, plane: Plane) => {
+        const partialDeriv = (current: number, plane: EulerPlane) => {
             const newAngles = [...euler.angles];
             newAngles[plane] += EPSILON;
 
@@ -68,6 +69,11 @@ export class Euler4 {
             }
         }
 
+        // const TOLERANCE = 0.0005;
+        // if (f() > TOLERANCE) {
+        //     euler.angles.fill(NaN);
+        // }
+
         return euler;
     }
 }
@@ -79,7 +85,7 @@ export class Orbit4 {
         // public orientation: Rotor4=new Rotor4(),
         public orientationEuler=new Euler4(
             [0, 0, 0, 0, 0, 0],
-            [Plane.Xy, Plane.Xz, Plane.Yz, Plane.Xw, Plane.Yw, Plane.Zw],
+            [Xw, Yw, Zw, Xz, Yz, Xy],
         ),
         public distance=1,
     ) {}
@@ -89,12 +95,12 @@ export class Orbit4 {
         {
             forward,
             center=new Vector4(),
-            planeOrdering=[Plane.Xz, Plane.Yz, Plane.Xy, Plane.Xw, Plane.Yw, Plane.Zw],
+            planeOrdering=[Xw, Yw, Zw, Xz, Yz, Xy],
             angleZeros=[],
         }: {
             forward: Vector4,
             center?: Vector4,
-            planeOrdering?: Multiple<6, Plane>,
+            planeOrdering?: Multiple<6, EulerPlane>,
             angleZeros?: number[],
         },
     ) {

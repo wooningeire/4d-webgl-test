@@ -33,8 +33,8 @@ onMount(() => {
     // gl.enable(gl.CULL_FACE); // Backface culling
     
     // Alpha blending
-    // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    // gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.enable(gl.BLEND);
 
 
     //#region Shader setup
@@ -54,6 +54,7 @@ onMount(() => {
             ));
 
     const mesh = originalMesh.crossSect();
+    // const mesh = construct.regularHexahedron();
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
 
@@ -314,7 +315,7 @@ let camera3Transform = new Transform4(
 const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
 const orbit4 = Orbit4.fromInitialPosition(new Vector4(0, 0, 0, -1.5), {
     forward: new Vector4(0, 0, 0, -1),
-    planeOrdering: [Xw, Yw, Zw, Xy, Xz, Yz], // Place the planes from each axis to W first
+    planeOrdering: [Xw, Yw, Zw, Xz, Yz, Xy], // Place the planes from each axis to W first
     angleZeros: [3, 4, 5],
 });
 const orbit3 = Orbit4.fromInitialPosition(new Vector4(1, 1, -1), {

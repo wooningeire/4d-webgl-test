@@ -1,5 +1,5 @@
 import { describe, expect, it, bench} from "vitest";
-import { Euler4, Plane } from "./CameraControl4";
+import { Euler4, EulerPlane } from "./CameraControl4";
 import type { Multiple } from "@/lib/util";
 
 const {PI} = Math;
@@ -7,7 +7,7 @@ const REV = PI * 2;
 const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
 
 describe(Euler4.fromRotor.name, () => {
-    const planeOrdering: Multiple<6, Plane> = [Xy, Yz, Zw, Xw, Xz, Yw];
+    const planeOrdering: Multiple<6, EulerPlane> = [Xy, Yz, Zw, Xw, Xz, Yw];
         
     const eulerExpected = new Euler4(
         [REV * 0.3, REV * 0.12, REV * 0.44, -REV * 0.15, -REV * 0.3, REV * 0.1],
@@ -33,7 +33,7 @@ describe(Euler4.fromRotor.name, () => {
             const testRotor = testEuler.asRotor();
             return rotorExpected.sqDist(testRotor);
         };
-        const partialDeriv = (current: number, plane: Plane) => {
+        const partialDeriv = (current: number, plane: EulerPlane) => {
             const newAngles = [...euler.angles];
             newAngles[plane] += EPSILON;
 
@@ -68,7 +68,7 @@ describe(Euler4.fromRotor.name, () => {
             const testRotor = testEuler.asRotor();
             return rotorExpected.sqDist(testRotor);
         };
-        const partialDeriv = (current: number, plane: Plane) => {
+        const partialDeriv = (current: number, plane: EulerPlane) => {
             const newAngles = [...euler.angles];
             newAngles[plane] += EPSILON;
 

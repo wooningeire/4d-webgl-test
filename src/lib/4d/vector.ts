@@ -74,6 +74,12 @@ export class Polymultivector extends Array<number> {
 		return this.scaled(1 / this.mag);
 	}
 
+	with(index: number, value: number): this {
+		const vec = this.clone();
+		vec[index] = value;
+		return vec;
+	}
+
 	/**
 	 * Determines whether two polymultivectors have the same values.
 	 * @param {Polymultivector} pmvector 
