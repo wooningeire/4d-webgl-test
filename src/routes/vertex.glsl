@@ -53,19 +53,23 @@ vec4 mat5_dot_vec4(Mat5 mat, vec4 vec) {
     return mat5_dot_vec5(mat, Vec5(vec, 1.)).v;
 }
 
-vec3 project4_to_3(Mat5 modelViewMatrix4, vec4 pos) {
+vec4 project4_to_3(Mat5 modelViewMatrix4, vec4 pos) {
     vec4 untransformed = mat5_dot_vec4(modelViewMatrix4, pos);
-    return untransformed.xyz / untransformed.w;
+    return vec4(untransformed.xyz / untransformed.w, untransformed.w);
 }
 
 vec3 project3_to_2(mat4 viewMatrix3, vec3 pos) {
     vec4 untransformed = vec4(pos, 1.) * viewMatrix3;
-    return vec3(untransformed.xy / untransformed.z, untransformed.z / 1000. - 1.0004); // temp Z for depth
+    return vec3(untransformed.xy / untransformed.z, untransformed.z / 5000. - 1.00004); // temp Z for depth
 }
 
 void main() {
-    vec3 projection3 = project4_to_3(u_modelViewMatrix4, a_pos);
-    vec3 position = project3_to_2(u_modelViewMatrix3, projection3);
+    vec4 projection3 = project4_to_3(u_modelViewMatrix4, a_pos);
+    vec3 position = project3_to_2(u_modelViewMatrix3, projection3.xyz);
+
+    // if (projection3.w <= 0.) {
+    //     position.z += projection3.w;
+    // }
 
     // Adjust coordinates so that viewport is square
     float maxDimension = max(u_dimensions.x, u_dimensions.y);

@@ -141,6 +141,16 @@ export class Transform4 {
         );
     }
 
+    matrixOrthographic(): Matrix5 {
+        return new Matrix5(
+            ...this.rotateAndScale(new Vector4(1, 0, 0, 0)), this.translate[0],
+            ...this.rotateAndScale(new Vector4(0, 1, 0, 0)), this.translate[1],
+            ...this.rotateAndScale(new Vector4(0, 0, 1, 0)), this.translate[2],
+            ...this.rotateAndScale(new Vector4(0, 0, 0, 1)), this.translate[3],
+            0, 0, 0, 1, 0,
+        );
+    }
+
     matrixInverse() {
         return this.matrix().inv();
         // return new Matrix5(
@@ -152,7 +162,15 @@ export class Transform4 {
         // );
     }
 
+    matrixOrthographicInverse() {
+        return this.matrixOrthographic().inv();
+    }
+
     transformVec(vector: Vector4): Vector4 {
         return this.rotateAndScale(vector).add(this.translate);
+    }
+
+    transformVecInverse(vector: Vector4): Vector4 {
+        return this.inverseScaleAndRotate(vector).subtract(this.translate);
     }
 }

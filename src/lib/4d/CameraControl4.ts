@@ -42,7 +42,7 @@ export class Euler4 {
         // Use gradient descent
 
         const EPSILON = 1e-15;
-        const N_ITERATIONS = 128;
+        const N_ITERATIONS = 48;
 
         // Function to minimize
         const f = (testEuler=euler) => {
@@ -63,7 +63,7 @@ export class Euler4 {
         for (let iteration = 0; iteration < N_ITERATIONS; iteration++) {
             const current = f();
             const gradient = [0, 1, 2, 3, 4, 5].map(plane => partialDeriv(current, plane));
-    
+
             for (let i = 0; i < 6; i++) {
                 euler.angles[i] -= gradient[i] * Math.PI / 2;
             }
@@ -187,4 +187,11 @@ export class FirstPerson4 {
         this.position = this.position
                 .add(localForward.scaled(deltaY / 1000))
     }
+}
+
+
+export enum ProjectionMethod {
+    Perspective,
+    Orthographic,
+    CrossSection,
 }

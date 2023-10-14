@@ -8,7 +8,7 @@ import BaseEntry from "./BaseEntry.svelte";
 import { Polymultivector, Rotor4 } from "$/4d/vector";
 import { mod, type Multiple } from "$/util";
 import { Euler4, EulerPlane } from "$/4d/CameraControl4";
-    import Euler4Entry from "./Euler4Entry.svelte";
+import Euler4Entry from "./Euler4Entry.svelte";
 
 
 const {Xy, Xz, Xw, Yz, Yw, Zw} = Euler4.Plane;
@@ -157,37 +157,15 @@ const labelId = (string: string) => `rotor-${instanceId}-${string}`;
                     on:input={onInput}
                     elementId={labelId("1")} />
 
-            <button on:click={() => onPlaneInvert(0)}>{entryDataRotor.invertedPlanes[0], rotorPlaneLabel(0)}</button>
-            <BaseEntry bind:value={entryDataRotor.value[1]}
-                    on:input={onInput} />
-
-            <button on:click={() => onPlaneInvert(1)}>{entryDataRotor.invertedPlanes[1], rotorPlaneLabel(1)}</button>
-            <BaseEntry bind:value={entryDataRotor.value[2]}
-                    on:input={onInput} />
-
-            {#if showWAxis}
-                <button on:click={() => onPlaneInvert(2)}>{entryDataRotor.invertedPlanes[2], rotorPlaneLabel(2)}</button>
-                <BaseEntry bind:value={entryDataRotor.value[3]}
-                        on:input={onInput} />
-            {/if}
-
-            <button on:click={() => onPlaneInvert(3)}>{entryDataRotor.invertedPlanes[3], rotorPlaneLabel(3)}</button>
-            <BaseEntry bind:value={entryDataRotor.value[4]}
-                    on:input={onInput} />
-
-            {#if showWAxis}
-                <button on:click={() => onPlaneInvert(4)}>{entryDataRotor.invertedPlanes[4], rotorPlaneLabel(4)}</button>
-                <BaseEntry bind:value={entryDataRotor.value[5]}
-                        on:input={onInput} />
-
-                <button on:click={() => onPlaneInvert(5)}>{entryDataRotor.invertedPlanes[5], rotorPlaneLabel(5)}</button>
-                <BaseEntry bind:value={entryDataRotor.value[6]}
-                        on:input={onInput} />
-
-                <button on:click={() => onPlaneInvert(6)}>{entryDataRotor.invertedPlanes[6], rotorPlaneLabel(6)}</button>
-                <BaseEntry bind:value={entryDataRotor.value[7]}
-                        on:input={onInput} />
-            {/if}
+            {#each Array(7).fill(0) as _, basis}
+                {#if showWAxis || ![2, 4, 5, 6].includes(basis)}
+                    <button on:click={() => onPlaneInvert(basis)}>
+                        {entryDataRotor.invertedPlanes[basis], rotorPlaneLabel(basis)}
+                    </button>
+                    <BaseEntry bind:value={entryDataRotor.value[basis + 1]}
+                            on:input={onInput} />
+                {/if}
+            {/each}
 
         </div>
     {:else if entryMode === EntryMode.PlaneAngle}

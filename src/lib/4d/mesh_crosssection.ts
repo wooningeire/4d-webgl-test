@@ -1,6 +1,6 @@
 import {reorderEdges, loops} from "./mesh_util";
 import type {Edge, Face, Cell, Vert, EdgeLoop} from "./mesh_util";
-import {Vector4} from "./vector";
+import {Line4, Space3_4, Vector4} from "./vector";
 import {numberSetKey} from "../util";
 
 type EdgeCrossSection = Edge | Vert | null;
@@ -11,7 +11,7 @@ type FaceCrossSection = Face | Edge[] | null;
  * @param cells 
  * @returns 
  */
-export const crossSect = (cells: Cell[]): [Vert[], Edge[], Face[], Cell[], EdgeLoop[]] => {
+export const crossSect = (cells: Cell[], space: Space3_4): [Vert[], Edge[], Face[], Cell[], EdgeLoop[]] => {
     const edgeIntersections = new Map<Edge, EdgeCrossSection>(); // To avoid recalculating intersections with the same edge
     const faceIntersections = new Map<Face, FaceCrossSection>();
 
@@ -54,8 +54,8 @@ export const crossSect = (cells: Cell[]): [Vert[], Edge[], Face[], Cell[], EdgeL
     //#region Helper intersection functions
 
     const crossSectEdge = (edge: Edge, edge0: Vert, edge1: Vert) => {
-        const direction = edge1.subtract(edge0);
-        const percent = -edge0[3] / direction[3];
+        const line = new Line4(edge1.subtract(edge0), edge0);
+        const percent = space.intersectWithLine(line);
     
         // 3-space does not intersect with this edge
         if (0 > percent || percent > 1) {
@@ -80,7 +80,7 @@ export const crossSect = (cells: Cell[]): [Vert[], Edge[], Face[], Cell[], EdgeL
             const pointIntersection = 
                     percent === 0 ? edge0 :
                     percent === 1 ? edge1 :
-                    edge0.add(direction.multScalar(percent));
+                    space.intersectionWithLine(line);
             edgeIntersections.set(edge, pointIntersection);
     
             addVert(pointIntersection);

@@ -130,11 +130,21 @@ export class Mesh4 {
 					.outer(edgeLoops[0][0].subtract(edgeLoops[1][0]))
 					.normalized();
 
+			// const x = Math.hypot(bivector.yz, bivector.yw, bivector.zw);
+			// const y = Math.hypot(bivector.xz, bivector.xw, bivector.zw);
+			// const z = Math.hypot(bivector.xy, bivector.xw, bivector.yw);
+			// const w = Math.hypot(bivector.xy, bivector.xz, bivector.yz);
+
+			// const r = 0.50 * x + 0.25 * y + 0.00 * z + 0.25 * w;
+			// const g = 0.00 * x + 0.50 * y + 0.50 * z + 0.00 * w;
+			// const b = 0.00 * x + 0.00 * y + 0.50 * z + 0.50 * w;
+
 			const color = [
 				Math.abs(bivector.yz),
 				Math.abs(bivector.xz),
 				Math.abs(bivector.xy),
-				0.5,
+				// r, g, b,
+				0.25,
 			];
 
 			for (let i = 1; i < edgeLoops.length - 1; i++) {
@@ -257,6 +267,21 @@ export class Mesh4 {
 		return this;
 	}
 
+	// transformed(transform: Transform4) {
+	// 	return this.clone().transform(transform);
+	// }
+
+	transformInverse(transform: Transform4) {
+		for (const vert of this.verts) {
+			vert.copy(transform.transformVecInverse(vert));
+		}
+		return this;
+	}
+
+	// transformedInverse(transform: Transform4) {
+	// 	return this.clone().transformInverse(transform);
+	// }
+
 	join(mesh: Mesh4) {
 		return new Mesh4(
 			[...this.verts, ...mesh.verts],
@@ -280,8 +305,8 @@ export class Mesh4 {
 	 * @param cells 
 	 * @returns 
 	 */
-	crossSect(/* space: Space3_4 */): Mesh4 {
-		return new Mesh4(...crossSect(this.cells));
+	crossSect(space: Space3_4): Mesh4 {
+		return new Mesh4(...crossSect(this.cells, space));
 	}
 
 	singleCellMesh(index: number): Mesh4 {
@@ -307,6 +332,38 @@ export class Mesh4 {
 			[...edgeLoops],
 		);
 	}
+
+	/* clone() {
+		const vertIndices = new Map<Vert, number>();
+		for (const [i, vert] of this.verts.entries()) {
+			vertIndices.set(vert, i);
+		}
+
+		const edgeIndices = new Map<Edge, number>();
+		for (const [i, edge] of this.edges.entries()) {
+			edgeIndices.set(edge, i);
+		}
+
+
+		const newVerts = this.verts.map(vert => vert.clone());
+		const newEdges = this.edges.map(edge => {
+			const vert0 = newVerts[vertIndices.get(edge[0])!];
+			const vert1 = newVerts[vertIndices.get(edge[1])!];
+
+			return [vert0, vert1];
+		});
+		const newEdgeLoops = this.edgeLoops.map(edgeLoop => {
+
+		});
+
+		return new Mesh4(
+			newVerts,
+			[...this.edges],
+			[...this.faces],
+			[...this.cells],
+			[...this.edgeLoops],
+		);
+	} */
 }
 
 /**

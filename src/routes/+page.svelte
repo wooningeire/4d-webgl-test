@@ -3,10 +3,10 @@ import {onMount} from "svelte";
 
 import {Gl} from "./Gl";
 import {Transform4} from "$/4d/Transform4";
-import {Bivector4, Rotor4, Vector4} from "$/4d/vector";
+import {Bivector4, Rotor4, Space3_4, Vector4} from "$/4d/vector";
 import {construct} from "$/4d/construct";
-import { Euler4, Orbit4 } from "$/4d/CameraControl4";
-import { Mesh4 } from "$/4d/Mesh4";
+import { Euler4, Orbit4, ProjectionMethod } from "$/4d/CameraControl4";
+import type { Mesh4 } from "$/4d/Mesh4";
 
 import vertexShaderSource from "./vertex.glsl?raw";
 import fragmentShaderMeshSource from "./fragment_mesh.glsl?raw";
@@ -19,6 +19,11 @@ import modifierKeys from "@/components/modifier-keys";
 let canvas: HTMLCanvasElement;
 
 let resizeCanvasAndViewport = () => {};
+
+let setNewMesh: (mesh: Mesh4) => void = () => {};
+
+let mesh: Mesh4;
+let currentMesh: Mesh4;
 
 
 onMount(() => {
@@ -33,7 +38,7 @@ onMount(() => {
     // gl.enable(gl.CULL_FACE); // Backface culling
     
     // Alpha blending
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
 
 
@@ -48,13 +53,14 @@ onMount(() => {
 
     //#endregion
 
-    const originalMesh = construct.regularHecatonicosachoron()
-            .transform(new Transform4(
-                new Vector4(0, 0, 0, 0.3),
-            ));
+    // const originalMesh = construct.regularHecatonicosachoron()
+    //         .transform(new Transform4(
+    //             new Vector4(0, 0, 0, 0.3),
+    //         ));
 
-    const mesh = originalMesh.crossSect();
-    // const mesh = construct.regularHexahedron();
+    // const mesh = originalMesh.crossSect();
+    mesh = construct.regularHecatonicosachoron();
+    currentMesh = mesh;
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
 
@@ -62,11 +68,10 @@ onMount(() => {
 
     const vertArrayMesh = gl.createVertexArray();
     gl.bindVertexArray(vertArrayMesh);
-
     const vertCoordsMesh = new Float32Array(mesh.triangleCoords());
 
     const COORD_DIMENSION_MESH = 4;
-    const nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
+    let nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
 
     const vertBufferMesh = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
@@ -88,6 +93,20 @@ onMount(() => {
     const colAttrMesh = gl.getAttribLocation(glProgramMesh, "a_col");
     gl.vertexAttribPointer(colAttrMesh, COL_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(colAttrMesh);
+
+
+    setNewMesh = (newMesh: Mesh4) => {
+        const vertCoordsMesh = new Float32Array(newMesh.triangleCoords());
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.DYNAMIC_DRAW);
+        nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newMesh.triangleColors()), gl.DYNAMIC_DRAW);
+        
+
+        currentMesh = newMesh;
+    };
 
 
     const vertArrayLine = gl.createVertexArray();
@@ -190,8 +209,6 @@ onMount(() => {
 
     // modelTransform.rotate = Rotor4.planeAngle(new Vector4(1, 0, 0, 0).outer(new Vector4(0, 1, 0, 0)), Math.PI * 1/4);
 
-    const currentTransform = new Transform4(new Vector4(.5, 0, 0, 0));
-
     resizeCanvasAndViewport = () => {
         // Scale up here (by `devicePixelRatio`) and scale down in CSS to appear sharp on high-DPI displays
         // Canvas is downsized to 100vw and 100vh in CSS
@@ -214,7 +231,11 @@ onMount(() => {
         // camera4Transform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 0, -2);
 
         // Camera inverse transform occurs before model transform, but matrix multiplications are from right-to-left
-        const modelViewMatrix4 = modelTransform.matrix().dotMat(camera4Transform.matrixInverse());
+        const modelViewMatrix4 = modelTransform.matrix().dotMat(
+            projectionMethod4 === ProjectionMethod.Perspective
+                    ? camera4Transform.matrixInverse()
+                    : camera4Transform.matrixOrthographicInverse()
+        );
 
         const mainMat = [
             ...modelViewMatrix4.slice(0, 4),
@@ -286,7 +307,7 @@ onMount(() => {
         gl.drawArrays(gl.LINES, 0, nVertsLine);
         
         gl.bindVertexArray(vertArrayWireframe);
-        gl.drawArrays(gl.LINES, 0, nVertsWireframe);
+        // gl.drawArrays(gl.LINES, 0, nVertsWireframe);
     };
 
     resizeCanvasAndViewport();
@@ -326,6 +347,32 @@ const orbit3 = Orbit4.fromInitialPosition(new Vector4(1, 1, -1), {
 
 let camera4Transform = orbit4.computeTransform();
 let camera3Transform = orbit3.computeTransform();
+
+let projectionMethod4 = ProjectionMethod.Perspective;
+$: projectionMethod4, (() => {
+    if (projectionMethod4 === ProjectionMethod.CrossSection) {
+        setNewMesh(
+            mesh.crossSect(new Space3_4(
+                camera4Transform.transformVec(new Vector4(0, 0, 0, -1)),
+                camera4Transform.translate,
+            ))
+        );
+    } else {
+        setNewMesh(mesh);
+    }
+})();
+
+$: camera4Transform, (() => {
+    if (projectionMethod4 === ProjectionMethod.CrossSection) {
+        setNewMesh(
+            mesh.crossSect(new Space3_4(
+                camera4Transform.transformVec(new Vector4(0, 0, 0, -1)),
+                camera4Transform.translate,
+            ))
+        );
+    }
+})();
+
 
 const beginDrag = createDragListener({
     shouldCancel(event) {
@@ -374,7 +421,8 @@ const onWheel = (event: WheelEvent) => {
             on:pointerdown={beginDrag}
             on:wheel|preventDefault={onWheel}></canvas>
     <Overlays {camera4Transform}
-            {camera3Transform} />
+            {camera3Transform}
+            bind:projectionMethod4={projectionMethod4} />
 </main>
 
 <svelte:window on:resize={resizeCanvasAndViewport} />
