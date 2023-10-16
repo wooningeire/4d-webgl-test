@@ -158,6 +158,10 @@ export class Orbit4 {
     zoom(deltaY: number) {
         this.distance *= 2 ** (deltaY / 1000);
     }
+    
+    dolly(deltaY: number) {
+        this.center = this.center.add(this.orientation.inverse().rotateVector(this.forward).scaled(-deltaY / 500));
+    }
 }
 
 export class FirstPerson4 {

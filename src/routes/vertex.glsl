@@ -11,6 +11,7 @@ struct Mat5 {
     mat3 rest; // remaining elements: first the 5th of first 4 columns and then the 5th column [4,9,14,19, 20,21,22,23,24]
 };
 uniform Mat5 u_modelViewMatrix4;
+uniform bool u_orthographic4;
 
 uniform mat4 u_modelViewMatrix3;
 
@@ -58,13 +59,20 @@ vec4 project4_to_3(Mat5 modelViewMatrix4, vec4 pos) {
     return vec4(untransformed.xyz / untransformed.w, untransformed.w);
 }
 
+vec4 project4_to_3_ortho(Mat5 modelViewMatrix4, vec4 pos) {
+    vec4 untransformed = mat5_dot_vec4(modelViewMatrix4, pos);
+    return untransformed;
+}
+
 vec3 project3_to_2(mat4 viewMatrix3, vec3 pos) {
     vec4 untransformed = vec4(pos, 1.) * viewMatrix3;
     return vec3(untransformed.xy / untransformed.z, untransformed.z / 5000. - 1.00004); // temp Z for depth
 }
 
 void main() {
-    vec4 projection3 = project4_to_3(u_modelViewMatrix4, a_pos);
+    vec4 projection3 = u_orthographic4
+            ? project4_to_3_ortho(u_modelViewMatrix4, a_pos)
+            : project4_to_3(u_modelViewMatrix4, a_pos);
     vec3 position = project3_to_2(u_modelViewMatrix3, projection3.xyz);
 
     // if (projection3.w <= 0.) {

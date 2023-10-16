@@ -21,6 +21,7 @@ let canvas: HTMLCanvasElement;
 let resizeCanvasAndViewport = () => {};
 
 let setNewMesh: (mesh: Mesh4) => void = () => {};
+let setOrthographic4: (ortho: boolean) => void = () => {};
 
 let mesh: Mesh4;
 let currentMesh: Mesh4;
@@ -59,7 +60,7 @@ onMount(() => {
     //         ));
 
     // const mesh = originalMesh.crossSect();
-    mesh = construct.regularHecatonicosachoron();
+    mesh = construct.regularOctachoron();
     currentMesh = mesh;
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
@@ -182,7 +183,7 @@ onMount(() => {
     //#endregion
 
 
-    //#region Setting uniforms
+    //#region Getting uniform pointers
 
     // These uniforms are set later
     const dimensionsMeshUnif = gl.getUniformLocation(glProgramMesh, "u_dimensions");
@@ -193,10 +194,21 @@ onMount(() => {
     const modelViewMatrix4RestMeshUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix4.rest");
     const modelViewMatrix3MeshUnif = gl.getUniformLocation(glProgramMesh, "u_modelViewMatrix3");
 
+    const orthographic4MeshUnif = gl.getUniformLocation(glProgramMesh, "u_orthographic4");
+
     const modelViewMatrix4MainLineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix4.main");
     const modelViewMatrix4RestLineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix4.rest");
     const modelViewMatrix3LineUnif = gl.getUniformLocation(glProgramLine, "u_modelViewMatrix3");
 
+    const orthographic4LineUnif = gl.getUniformLocation(glProgramLine, "u_orthographic4");
+
+    setOrthographic4 = (ortho: boolean) => {
+        gl.useProgram(glProgramMesh);
+        gl.uniform1i(orthographic4MeshUnif, Number(ortho));
+
+        gl.useProgram(glProgramLine);
+        gl.uniform1i(orthographic4LineUnif, Number(ortho));
+    };
     //#endregion
 
 
@@ -231,11 +243,7 @@ onMount(() => {
         // camera4Transform.translate = new Vector4(1.5 * Math.cos(now / 1000), 0, 0, -2);
 
         // Camera inverse transform occurs before model transform, but matrix multiplications are from right-to-left
-        const modelViewMatrix4 = modelTransform.matrix().dotMat(
-            projectionMethod4 === ProjectionMethod.Perspective
-                    ? camera4Transform.matrixInverse()
-                    : camera4Transform.matrixOrthographicInverse()
-        );
+        const modelViewMatrix4 = modelTransform.matrix().dotMat(camera4Transform.matrixInverse());
 
         const mainMat = [
             ...modelViewMatrix4.slice(0, 4),
@@ -307,7 +315,7 @@ onMount(() => {
         gl.drawArrays(gl.LINES, 0, nVertsLine);
         
         gl.bindVertexArray(vertArrayWireframe);
-        // gl.drawArrays(gl.LINES, 0, nVertsWireframe);
+        gl.drawArrays(gl.LINES, 0, nVertsWireframe);
     };
 
     resizeCanvasAndViewport();
@@ -371,33 +379,41 @@ $: camera4Transform, (() => {
             ))
         );
     }
+
+    setOrthographic4(projectionMethod4 !== ProjectionMethod.Perspective);
 })();
 
 
 const beginDrag = createDragListener({
-    shouldCancel(event) {
-        return event.button !== 1; // Only allow wheel
-    },
-
     onDrag(moveEvent) {
-        if ($modifierKeys.ctrl) {
-            if ($modifierKeys.shift) {
-                const globalRight = $modifierKeys.alt ? new Vector4(0, 0, 1, 0) : new Vector4(1, 0, 0, 0);
+        if (moveEvent.buttons === 0b100) {
+            if ($modifierKeys.ctrl) {
+                if ($modifierKeys.shift) {
+                    const globalRight = $modifierKeys.alt ? new Vector4(0, 0, 1, 0) : new Vector4(1, 0, 0, 0);
 
-                orbit4.pan(moveEvent.movementX, moveEvent.movementY, globalRight);
-                camera4Transform = orbit4.computeTransform();
+                    orbit4.pan(moveEvent.movementX, moveEvent.movementY, globalRight);
+                    camera4Transform = orbit4.computeTransform();
+                } else {
+                    const rightPlaneIndex = $modifierKeys.alt ? 2 : 0;
+
+                    orbit4.turn(moveEvent.movementX, moveEvent.movementY, rightPlaneIndex);
+                    camera4Transform = orbit4.computeTransform();
+                }
             } else {
-                const rightPlaneIndex = $modifierKeys.alt ? 2 : 0;
-
-                orbit4.turn(moveEvent.movementX, moveEvent.movementY, rightPlaneIndex);
-                camera4Transform = orbit4.computeTransform();
+                if ($modifierKeys.shift) {
+                    orbit3.pan(moveEvent.movementX, moveEvent.movementY);
+                    camera3Transform = orbit3.computeTransform();
+                } else {
+                    orbit3.turn(moveEvent.movementX, moveEvent.movementY);
+                    camera3Transform = orbit3.computeTransform();
+                }
             }
-        } else {
-            if ($modifierKeys.shift) {
-                orbit3.pan(moveEvent.movementX, moveEvent.movementY);
-                camera3Transform = orbit3.computeTransform();
+        } else if (moveEvent.buttons === 0b001) {
+            if ($modifierKeys.ctrl) {
+                orbit4.dolly(moveEvent.movementX);
+                camera4Transform = orbit4.computeTransform();
             } else {
-                orbit3.turn(moveEvent.movementX, moveEvent.movementY);
+                orbit3.dolly(moveEvent.movementX);
                 camera3Transform = orbit3.computeTransform();
             }
         }
