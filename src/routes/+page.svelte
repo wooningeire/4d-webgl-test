@@ -60,7 +60,7 @@ onMount(() => {
     //         ));
 
     // const mesh = originalMesh.crossSect();
-    mesh = construct.regularOctachoron();
+    mesh = construct.regularHecatonicosachoron();
     currentMesh = mesh;
 
     console.log(mesh.verts.length, mesh.edges.length, mesh.faces.length);
@@ -94,20 +94,6 @@ onMount(() => {
     const colAttrMesh = gl.getAttribLocation(glProgramMesh, "a_col");
     gl.vertexAttribPointer(colAttrMesh, COL_DIMENSION_MESH, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(colAttrMesh);
-
-
-    setNewMesh = (newMesh: Mesh4) => {
-        const vertCoordsMesh = new Float32Array(newMesh.triangleCoords());
-        gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
-        gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.DYNAMIC_DRAW);
-        nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newMesh.triangleColors()), gl.DYNAMIC_DRAW);
-        
-
-        currentMesh = newMesh;
-    };
 
 
     const vertArrayLine = gl.createVertexArray();
@@ -171,15 +157,34 @@ onMount(() => {
     const vertCoordsWireframe = new Float32Array(mesh.linesCoords());
 
     const COORD_DIMENSION_WIREFRAME = 4;
-    const nVertsWireframe = vertCoordsWireframe.length / COORD_DIMENSION_WIREFRAME;
+    let nVertsWireframe = vertCoordsWireframe.length / COORD_DIMENSION_WIREFRAME;
 
     const vertBufferWireframe = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferWireframe);
-    gl.bufferData(gl.ARRAY_BUFFER, vertCoordsWireframe, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, vertCoordsWireframe, gl.DYNAMIC_DRAW);
 
     gl.vertexAttribPointer(posAttrLine, COORD_DIMENSION_WIREFRAME, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(posAttrLine);
 
+
+    setNewMesh = (newMesh: Mesh4) => {
+        const vertCoordsMesh = new Float32Array(newMesh.triangleCoords());
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, vertCoordsMesh, gl.DYNAMIC_DRAW);
+        nVertsMesh = vertCoordsMesh.length / COORD_DIMENSION_MESH;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colBufferMesh);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(newMesh.triangleColors()), gl.DYNAMIC_DRAW);
+        
+
+        const vertCoordsWireframe = new Float32Array(newMesh.linesCoords());
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertBufferWireframe);
+        gl.bufferData(gl.ARRAY_BUFFER, vertCoordsWireframe, gl.DYNAMIC_DRAW);
+        nVertsWireframe = vertCoordsWireframe.length / COORD_DIMENSION_WIREFRAME;
+
+        currentMesh = newMesh;
+    };
+    
     //#endregion
 
 
